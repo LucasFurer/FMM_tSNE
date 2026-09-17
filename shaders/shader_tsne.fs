@@ -1,0 +1,17 @@
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 FragCol;
+
+void main()
+{
+	vec2 coord = gl_PointCoord - vec2(0.5);
+	if(length(coord) > 0.45)
+	{
+		discard;
+	}
+
+	FragColor = vec4(FragCol,1.0f);
+}
