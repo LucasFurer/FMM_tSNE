@@ -1,4 +1,4 @@
-# Slime mold simulation
+# FMM_tSNE
 
 #### *required to run*:
 * OpenGL
@@ -8,4 +8,4 @@
 * ``` ./run.sh ```
 
 #### Description:
-A personal project that simulates real-life slime mold using a few simple rules.
+Implementation of t-SNE using the FMM coded using modern C++.
