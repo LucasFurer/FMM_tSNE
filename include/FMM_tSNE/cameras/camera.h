@@ -48,6 +48,8 @@ class Camera
     float lastY = 300.0f;
     bool firstMouse = true;
 
+    Camera() = default;
+
     Camera(glm::vec3 initPosition,
            glm::vec3 up,
            float initYaw,

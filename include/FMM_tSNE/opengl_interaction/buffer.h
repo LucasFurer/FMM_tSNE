@@ -5,6 +5,9 @@
 #include <glad/glad.h>
 #include <iostream>
 #include <vector>
+// #include <array>
+// #include <meta>
+// #include <type_traits>
 
 enum class DataLayout
 {
@@ -77,7 +80,7 @@ class Buffer
         return *this;
     }
 
-    void bind_VAO() const noexcept { glBindVertexArray(VAO_); }
+    inline void bind_VAO() const noexcept { glBindVertexArray(VAO_); }
     [[nodiscard]] std::size_t get_elem_count_() const noexcept { return elem_count_; }
 
     // change this so gl dynamic draw is a parameter!
@@ -118,39 +121,39 @@ class Buffer
         switch (data_layout)
         {
         case DataLayout::Float2_Float3:
-            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) 0);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(T), (void*) 0);
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (2 * sizeof(float)));
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(T), (void*) (2 * sizeof(float)));
             glEnableVertexAttribArray(1);
             break;
         case DataLayout::Float2_Float2_Int1:
-            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float) + 1 * sizeof(int), (void*) 0);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(T), (void*) 0);
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float) + 1 * sizeof(int), (void*) (2 * sizeof(float)));
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(T), (void*) (2 * sizeof(float)));
             glEnableVertexAttribArray(1);
-            glVertexAttribIPointer(2, 1, GL_INT, 4 * sizeof(float) + 1 * sizeof(int), (void*) (4 * sizeof(float)));
+            glVertexAttribIPointer(2, 1, GL_INT,            sizeof(T), (void*) (4 * sizeof(float)));
             glEnableVertexAttribArray(2);
             break;
         case DataLayout::Float2_Float2_Int1_Int1:
-            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float) + 2 * sizeof(int), (void*) 0);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(T), (void*) 0);
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float) + 2 * sizeof(int), (void*) (2 * sizeof(float)));
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(T), (void*) (2 * sizeof(float)));
             glEnableVertexAttribArray(1);
-            glVertexAttribIPointer(2, 1, GL_INT, 4 * sizeof(float) + 2 * sizeof(int), (void*) (4 * sizeof(float)));
+            glVertexAttribIPointer(2, 1, GL_INT,            sizeof(T), (void*) (4 * sizeof(float)));
             glEnableVertexAttribArray(2);
-            glVertexAttribIPointer(3, 1, GL_INT, 4 * sizeof(float) + 2 * sizeof(int), (void*) (4 * sizeof(float) + 1 * sizeof(int)));
+            glVertexAttribIPointer(3, 1, GL_INT,            sizeof(T), (void*) (4 * sizeof(float) + 1 * sizeof(int)));
             glEnableVertexAttribArray(3);
             break;
         case DataLayout::Float2_Float2_Int1_Int1_Int32t1:
-            glVertexAttribPointer(0,  2,  GL_FLOAT,  GL_FALSE,  4 * sizeof(float) + 2 * sizeof(int) + 1 * sizeof(std::uint32_t), (void*) 0);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(T), (void*) 0);
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1,  2, GL_FLOAT, GL_FALSE, 4 * sizeof(float) + 2 * sizeof(int) + 1 * sizeof(std::uint32_t), (void*) (2 * sizeof(float)));
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(T), (void*) (2 * sizeof(float)));
             glEnableVertexAttribArray(1);
-            glVertexAttribIPointer(2, 1, GL_INT, 4 * sizeof(float) + 2 * sizeof(int) + 1 * sizeof(std::uint32_t), (void*) (4 * sizeof(float)));
+            glVertexAttribIPointer(2, 1, GL_INT,            sizeof(T), (void*) (4 * sizeof(float)));
             glEnableVertexAttribArray(2);
-            glVertexAttribIPointer(3, 1, GL_INT, 4 * sizeof(float) + 2 * sizeof(int) + 1 * sizeof(std::uint32_t), (void*) (4 * sizeof(float) + 1 * sizeof(int)));
+            glVertexAttribIPointer(3, 1, GL_INT,            sizeof(T), (void*) (4 * sizeof(float) + 1 * sizeof(int)));
             glEnableVertexAttribArray(3);
-            glVertexAttribIPointer(4,  1,  GL_UNSIGNED_INT,  4 * sizeof(float) + 2 * sizeof(int) + 1 * sizeof(std::uint32_t), (void*) (4 * sizeof(float) + 2 * sizeof(int)));
+            glVertexAttribIPointer(4, 1,  GL_UNSIGNED_INT,  sizeof(T), (void*) (4 * sizeof(float) + 2 * sizeof(int)));
             glEnableVertexAttribArray(4);
             break;
         case DataLayout::Double2_Double2_Int1:
@@ -158,7 +161,7 @@ class Buffer
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(1, 2, GL_DOUBLE, GL_FALSE, sizeof(T), (void*) (2 * sizeof(double)));
             glEnableVertexAttribArray(1);
-            glVertexAttribIPointer(2, 1, GL_INT, sizeof(T), (void*) (4 * sizeof(double)));
+            glVertexAttribIPointer(2, 1, GL_INT,             sizeof(T), (void*) (4 * sizeof(double)));
             glEnableVertexAttribArray(2);
             break;
         case DataLayout::Double2_Double2_Int1_Int1_Int32t1:
@@ -166,11 +169,11 @@ class Buffer
             glEnableVertexAttribArray(0);
             glVertexAttribPointer(1, 2, GL_DOUBLE, GL_FALSE, sizeof(T), (void*) (2 * sizeof(double)));
             glEnableVertexAttribArray(1);
-            glVertexAttribIPointer(2, 1, GL_INT, sizeof(T), (void*) (4 * sizeof(double)));
+            glVertexAttribIPointer(2, 1, GL_INT,             sizeof(T), (void*) (4 * sizeof(double)));
             glEnableVertexAttribArray(2);
-            glVertexAttribIPointer(3, 1, GL_INT, sizeof(T), (void*) (4 * sizeof(double) + 1 * sizeof(int)));
+            glVertexAttribIPointer(3, 1, GL_INT,             sizeof(T), (void*) (4 * sizeof(double) + 1 * sizeof(int)));
             glEnableVertexAttribArray(3);
-            glVertexAttribIPointer(4, 1, GL_UNSIGNED_INT, sizeof(T), (void*) (4 * sizeof(double) + 2 * sizeof(int)));
+            glVertexAttribIPointer(4, 1, GL_UNSIGNED_INT,    sizeof(T), (void*) (4 * sizeof(double) + 2 * sizeof(int)));
             glEnableVertexAttribArray(4);
             break;
         default:
