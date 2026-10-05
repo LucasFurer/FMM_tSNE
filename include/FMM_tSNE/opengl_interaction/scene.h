@@ -16,11 +16,7 @@ struct Renderable
     Shader* shader;
     Texture* texture;
 
-    Renderable(GLenum initRenderType,
-               glm::mat4 initModel,
-               Buffer* initbuffer,
-               Shader* initShader,
-               Texture* initTexture)
+    Renderable(GLenum initRenderType, glm::mat4 initModel, Buffer* initbuffer, Shader* initShader, Texture* initTexture)
     {
         renderType = initRenderType;
         model = initModel;

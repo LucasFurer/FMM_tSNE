@@ -1,6 +1,21 @@
 #include <FMM_tSNE/app.h>
 
 #include <FMM_tSNE/cameras/two_D_camera.h>
+#include <FMM_tSNE/opengl_interaction/scene.h>
+#include <GLFW/glfw3.h>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
+#include <iostream>
+#include <map>
+#include <stb_image/stb_image.h>
+#include <string>
+#include <vector>
 
 App::App()
 {
@@ -89,7 +104,7 @@ App::~App()
     glfwTerminate();
 }
 
-void App::run()
+void App::run(RunInfo run_info)
 {
     // initial
     scenes_[current_scene_name_]->camera->processInput(window_, delta_time_);
@@ -141,15 +156,11 @@ void App::run()
     // IM_ARRAYSIZE(sceneNames.data()));
     //  this is kinda cursed, fix later!!!!!!!!!
 
-    /*
-    if (current_scene_name == "tsne")
+    if (current_scene_name_ == "tsne")
     {
-        if (per == 1)
-            scenes[current_scene_name]->camera->perspective = true;
-        else
-            scenes[current_scene_name]->camera->perspective = false;
+        scenes_[current_scene_name_]->camera->perspective = false;
 
-        std::string frameOutput = "iteration: " + std::to_string(tsne.iteration_counter);
+        std::string frameOutput = "iteration: " + std::to_string(run_info.tsne.iteration_counter);
         ImGui::Text(frameOutput.c_str());
 
         // std::vector<std::string> solvers =
@@ -165,26 +176,25 @@ void App::run()
         //     static_cast<void*>(&sceneNames),
         //     static_cast<int>(sceneNames.size())
         //);
-        ImGui::SliderFloat("sim speed", &tsne.desired_iteration_per_second, 0.0f, 1000.0f);
-        ImGui::SliderFloat("forceSize", &tsne.forceSize, 0.0f, 200.0f);
-        ImGui::SliderInt("show tree level", &tsne.nodeLevelToShow, -1, 10);
-        ImGui::SliderInt("follow embedded points", &tsne.follow, 0, 1);
+        ImGui::SliderFloat("sim speed", &run_info.tsne.desired_iteration_per_second, 0.0f, 1000.0f);
+        ImGui::SliderFloat("forceSize", &run_info.tsne.forceSize, 0.0f, 200.0f);
+        ImGui::SliderInt("show tree level", &run_info.tsne.nodeLevelToShow, -1, 10);
+        ImGui::SliderInt("follow embedded points", &run_info.tsne.follow, 0, 1);
 
-        tsne.timeStep();
+        run_info.tsne.timeStep();
 
-        if (tsne.follow == 1)
+        if (run_info.tsne.follow == 1)
         {
             // auto [left, right, down, up] = tsne.getEdges();
-            float left = tsne.minPos.x;
-            float down = tsne.minPos.y;
-            float right = tsne.maxPos.x;
-            float up = tsne.maxPos.y;
-            scenes[current_scene_name]->camera->Position =
+            float left = run_info.tsne.minPos.x;
+            float down = run_info.tsne.minPos.y;
+            float right = run_info.tsne.maxPos.x;
+            float up = run_info.tsne.maxPos.y;
+            scenes_[current_scene_name_]->camera->Position =
                 glm::vec3(left + (right - left) * 0.5f,
                           down + (up - down) * 0.5f,
-                          scenes[current_scene_name]->camera->Position.z);
-            scenes[current_scene_name]->camera->Zoom =
-                1.2f * std::max((up - down) * 0.5f, (right - left) * 0.5f);
+                          scenes_[current_scene_name_]->camera->Position.z);
+            scenes_[current_scene_name_]->camera->Zoom = 1.2f * std::max((up - down) * 0.5f, (right - left) * 0.5f);
 
             // scenes[current_scene_name]->camera->Zoom = std::max(up - down, (right - left)
             // / ((float)screenWidth / (float)screenHeight));
@@ -194,7 +204,6 @@ void App::run()
     {
         std::cout << "no scene selected" << std::endl;
     }
-*/
 
     scenes_[current_scene_name_]->Render();
 

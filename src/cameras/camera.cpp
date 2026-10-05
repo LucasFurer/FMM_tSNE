@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <cmath>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
@@ -59,8 +61,7 @@ glm::mat4 Camera::getProjectionMatrix()
 
 void Camera::mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
-    ImGui_ImplGlfw_CursorPosCallback(window,
-                                     xposIn,
+    ImGui_ImplGlfw_CursorPosCallback(window, xposIn,
                                      yposIn); // needed so that imgui stays responsive
     auto* cam = static_cast<Camera*>(glfwGetWindowUserPointer(window));
     cam->mouse_callback_impl(window, xposIn, yposIn);

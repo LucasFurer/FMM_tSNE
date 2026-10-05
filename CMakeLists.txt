@@ -52,6 +52,11 @@ target_include_directories(${TARGET_NAME}
     third_party/include # for libraries with seperable .h and .cpp files
     third_party/dropIn # for libraries with inseperable .h and .cpp files
 )
+target_compile_definitions(${TARGET_NAME}
+  PRIVATE
+    GLFW_INCLUDE_NONE # stop glfw3.h from including the system GL header (glad provides it)
+    GLM_ENABLE_EXPERIMENTAL # allow experimental glm features
+)
 
 # .a .so .c implementations who have a .h in third_party/include
 target_link_directories(${TARGET_NAME}

@@ -1,13 +1,9 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdint>
 #include <glad/glad.h>
 #include <iostream>
 #include <vector>
-// #include <array>
-// #include <meta>
-// #include <type_traits>
 
 enum class DataLayout
 {

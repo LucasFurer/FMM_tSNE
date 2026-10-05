@@ -1,32 +1,30 @@
-#include "FMM_tSNE/cameras/two_D_camera.h"
-#define GLM_ENABLE_EXPERIMENTAL
-
 #include <FMM_tSNE/app.h>
+#include <FMM_tSNE/cameras/two_D_camera.h>
+#include <FMM_tSNE/tsne/tsne_buffers.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 int main()
 {
     App app{};
 
-    // global stuff
+    // put stuff into the app
     glm::mat4 model = glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), glm::vec3(1.0f));
 
     Shader shader = Shader((std::filesystem::current_path().string() + "/shaders/shader_tsne.vs").c_str(),
                            (std::filesystem::current_path().string() + "/shaders/shader_tsne.fs").c_str());
 
-    // create Buffer
-    struct PosColStruct
-    {
-        glm::vec2 pos;
-        glm::vec3 col;
-    };
-    std::vector<PosColStruct> pos_col_struct_vec = {
-        {.pos = {20.0, 0.0}, .col = {1.0, 1.0, 1.0}},
-        {.pos = {0.0, 20.0}, .col = {1.0, 1.0, 1.0}},
-        {.pos = {0.0, 0.0}, .col = {1.0, 1.0, 1.0}},
-    };
-    Buffer buffer = Buffer(pos_col_struct_vec, DataLayout::Float2_Float3, GL_DYNAMIC_DRAW);
+    TSNE_buffers tsne(1.0,            // min_theta
+                      1.0,            // max_theta
+                      1.0,            // cell_size
+                      "MNIST_digits", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
+                      10000,          // data_size
+                      30.0f,          // perplexity
+                      216308u         // seed: 216308u, 592340823u, 4523u, 296343u
+    );
+    tsne.nBodySelect = "naive";
 
-    Renderable renderable(GL_POINTS, model, &buffer, &shader, nullptr);
+    Renderable renderable(GL_POINTS, model, tsne.embeddedBuffer, &shader, nullptr);
     std::vector<Renderable> renderables{renderable};
 
     TwoDCamera camera = TwoDCamera(glm::vec3(0.0f, 0.0f, -800.0f),
@@ -62,7 +60,7 @@ int main()
 
     while (!app.should_close())
     {
-        app.run();
+        app.run({.tsne = tsne});
     }
 
     return 0;

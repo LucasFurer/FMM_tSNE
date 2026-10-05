@@ -1,6 +1,7 @@
 #include <FMM_tSNE/data_loaders/MNIST_data.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <fstream>
 #include <ios>
 #include <iostream>
@@ -12,8 +13,7 @@
 namespace MNIST_data
 {
 
-float*
-loadMNIST(unsigned int* dataAmount, unsigned int* dataDimension, const char* path, int maxAmount)
+float* loadMNIST(unsigned int* dataAmount, unsigned int* dataDimension, const char* path, int maxAmount)
 {
     // this is the format of the data https://yann.lecun.com/exdb/mnist/
     FILE* file = fopen(path, "rb"); // open file at path in mode rb (read buffer)
@@ -52,8 +52,7 @@ std::vector<uint8_t> loadLabels(std::string path)
         std::cerr << "Error opening file!" << std::endl;
     }
 
-    return std::vector<uint8_t>((std::istreambuf_iterator<char>(file)),
-                                std::istreambuf_iterator<char>());
+    return std::vector<uint8_t>((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 }
 
 Eigen::SparseMatrix<double> loadPmatrix(std::string path)

@@ -1,10 +1,12 @@
+// include glad first
+#include <glad/glad.h>
+
 #include <FMM_tSNE/opengl_interaction/scene.h>
 
 #include <FMM_tSNE/cameras/camera.h>
 #include <FMM_tSNE/opengl_interaction/buffer.h>
 #include <FMM_tSNE/opengl_interaction/shader.h>
 #include <FMM_tSNE/opengl_interaction/texture.h>
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <string>

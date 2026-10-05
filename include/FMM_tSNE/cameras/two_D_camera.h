@@ -2,6 +2,8 @@
 
 #include <FMM_tSNE/cameras/camera.h>
 
+#include <GLFW/glfw3.h>
+
 class TwoDCamera final : public Camera
 {
   public:

@@ -1,7 +1,9 @@
+// include glad first
+#include <glad/glad.h>
+
 #include <FMM_tSNE/opengl_interaction/shader.h>
 
 #include <fstream>
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
@@ -125,8 +127,7 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
         {
             glGetShaderInfoLog(shader, 1024, NULL, infoLog);
             std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n"
-                      << infoLog << "\n -- --------------------------------------------------- -- "
-                      << std::endl;
+                      << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
         }
     }
     else
@@ -136,8 +137,7 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
         {
             glGetProgramInfoLog(shader, 1024, NULL, infoLog);
             std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n"
-                      << infoLog << "\n -- --------------------------------------------------- -- "
-                      << std::endl;
+                      << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
         }
     }
 }

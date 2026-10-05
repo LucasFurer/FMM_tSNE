@@ -1,5 +1,6 @@
 #include <FMM_tSNE/cameras/normal_camera.h>
 
+#include <GLFW/glfw3.h>
 #include <algorithm>
 
 void NormalCamera::processInput(GLFWwindow* window, float deltaTime)

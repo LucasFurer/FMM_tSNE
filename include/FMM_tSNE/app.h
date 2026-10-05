@@ -1,29 +1,25 @@
-#pragma once
 // camera has controls build in, decouple this and make control functionality into app or something.
 // i want the glfwSetWindowPointer or whatever to be in one place.
+#pragma once
 
-#define GLM_ENABLE_EXPERIMENTAL
-//  #define GLFW_INCLUDE_NONE // because glad and glfw both import the same thing that conflicts
-
-#include <glad/glad.h>
-// glad must be first
-// #include <FMM_tSNE/cameras/two_D_camera.h>
 #include <FMM_tSNE/cameras/two_D_camera.h>
 #include <FMM_tSNE/opengl_interaction/scene.h>
+#include <FMM_tSNE/tsne/tsne_buffers.h>
 #include <GLFW/glfw3.h>
-#include <filesystem>
+#include <glad/glad.h>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
-#include <iostream>
 #include <map>
 #include <stb_image/stb_image.h>
 #include <string>
 #include <vector>
+
+struct RunInfo
+{
+    TSNE_buffers& tsne;
+};
 
 class App
 {
@@ -39,7 +35,7 @@ class App
     [[nodiscard]] inline unsigned int get_screen_width_() const noexcept { return screen_width_; }
     [[nodiscard]] inline unsigned int get_screen_height_() const noexcept { return screen_height_; }
 
-    void run();
+    void run(RunInfo run_info);
     bool should_close();
 
     // i dont like that this is static
@@ -67,11 +63,4 @@ class App
 
     float last_time_pressed_ = 0.0f;
     float last_frame_update_ = 0.0f;
-
-    // void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-    //{
-    //     screen_width_ = width;
-    //     screen_height_ = height;
-    //     glViewport(0, 0, screen_width_, screen_height_);
-    // }
 };

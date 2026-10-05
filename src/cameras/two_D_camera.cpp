@@ -1,5 +1,7 @@
 #include <FMM_tSNE/cameras/two_D_camera.h>
 
+#include <GLFW/glfw3.h>
+
 void TwoDCamera::processInput(GLFWwindow* window, float deltaTime)
 {
     const float velocity = MovementSpeed * Zoom * deltaTime;
