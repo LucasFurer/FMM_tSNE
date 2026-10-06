@@ -78,7 +78,7 @@ class TSNE_buffers final : public TSNE
     void resetBuffers()
     {
 #ifdef INDEX_TRACKER
-        embeddedBuffer = new Buffer(embeddedPoints, Double2Double2Int1Int1Int32_t1, GL_DYNAMIC_DRAW);
+        embeddedBuffer = new Buffer(embeddedPoints, DataLayout::Double2_Double2_Int1_Int1_Int32t1, GL_DYNAMIC_DRAW);
 #else
         embeddedBuffer = new Buffer(embeddedPoints, DataLayout::Double2_Double2_Int1, GL_DYNAMIC_DRAW);
 #endif
@@ -94,7 +94,7 @@ class TSNE_buffers final : public TSNE
     void updateBuffers()
     {
 #ifdef INDEX_TRACKER
-        embeddedBuffer->updateBuffer(embeddedPoints, Double2Double2Int1Int1Int32_t1);
+        embeddedBuffer->update_vertex_buffer(embeddedPoints, DataLayout::Double2_Double2_Int1_Int1_Int32t1);
 #else
         embeddedBuffer->update_vertex_buffer(embeddedPoints, DataLayout::Double2_Double2_Int1);
 #endif
@@ -128,7 +128,7 @@ class TSNE_buffers final : public TSNE
         {
             time_since_last_iteration = glfwGetTime();
 
-            std::cout << "------------------------------------\n";
+            // std::cout << "------------------------------------\n";
             Timer time_step_timer;
 
             {

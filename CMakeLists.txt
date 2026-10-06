@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.23)
 
-set(CMAKE_CXX_STANDARD 26)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 23)
+# set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# set(CMAKE_CXX_EXTENSIONS OFF)
 
 get_filename_component(ROOT_FOLDER_NAME ${CMAKE_SOURCE_DIR} NAME) # get root folder name
 set(TARGET_NAME main)
@@ -56,6 +56,7 @@ target_compile_definitions(${TARGET_NAME}
   PRIVATE
     GLFW_INCLUDE_NONE # stop glfw3.h from including the system GL header (glad provides it)
     GLM_ENABLE_EXPERIMENTAL # allow experimental glm features
+    INDEX_TRACKER # enable this to use the morton code solvers
 )
 
 # .a .so .c implementations who have a .h in third_party/include
