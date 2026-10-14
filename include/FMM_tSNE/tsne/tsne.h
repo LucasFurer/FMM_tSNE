@@ -16,8 +16,8 @@
 #include <FMM_tSNE/tsne/solvers/PM/solver_PM.h>
 #include <FMM_tSNE/tsne/solvers/naive/solver_naive.h>
 #include <FMM_tSNE/tsne/solvers/sFMM/solver_sFMM.h>
+#include <FMM_tSNE/tsne/solvers/sFMM_fast/solver_sFMM_fast.h>
 #include <FMM_tSNE/tsne/solvers/solver.h>
-#include <iostream>
 #include <limits>
 #include <map>
 #include <numbers>
@@ -149,6 +149,9 @@ class TSNE
             NBodySolverFMM_SYM_MORTON<TsnePoint2D>::getDepth(max_children_per_node, data_amount),
             max_theta);
         nBodySolvers["FMM_SYM_MORTON"]->updateTree(embeddedPoints, minPos, maxPos);
+        nBodySolvers["FMMfast_SYM_MORTON"] = new SolverSFMMFast<TsnePoint2D>(
+            &TSNE_FMMfast_SYM_MORTON_NN_Kernel, &TSNE_FMMfast_SYM_MORTON_PN_Kernel, &TSNE_FMMfast_SYM_MORTON_PP_Kernel);
+        nBodySolvers["FMMfast_SYM_MORTON"]->updateTree(embeddedPoints, minPos, maxPos);
 #endif
     }
 
@@ -304,7 +307,7 @@ class TSNE
 
         updateRepulsive();
 
-        updateAttractive();
+        // updateAttractive();
     }
 
     void resetDeriv()

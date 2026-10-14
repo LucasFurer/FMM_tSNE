@@ -13,15 +13,6 @@
 #include <glm/gtx/string_cast.hpp>
 #include <vector>
 
-// #include "../../common.h"
-// #include "../../particles/Particle2D.h"
-// #include "../../particles/embeddedPoint.h"
-// #include "../../particles/morton_point.h"
-// #include "../../particles/tsnePoint2D.h"
-// #include "../../trees/cpu/nodeFMM_MORTON_2D.h"
-// #include "../../trees/cpu/quadtreeFMM.h"
-// #include "nBodySolver.h"
-
 template <typename T>
 class NBodySolverFMM_SYM_MORTON : public NBodySolver<T>
 {
@@ -341,18 +332,23 @@ class NBodySolverFMM_SYM_MORTON : public NBodySolver<T>
 
         double leafNodeSize = largestAxis / static_cast<double>(levelGridWidth[treeDepth]);
 
+        // place each point in the correct node
         for (int i = 0; i < points.size(); i++)
         {
+            // gridPos is [0-max_grid_width]
             glm::dvec2 gridPos =
                 static_cast<double>(levelGridWidth[treeDepth]) * (points[i].position + negMinPos) / (largestAxis);
 
+            // convert gridPos to an int and clamp it
             glm::vec<2, uint32_t> gridCoord =
                 glm::min(glm::max(glm::vec<2, uint32_t>(gridPos), glm::vec<2, uint32_t>(0u)),
                          glm::vec<2, uint32_t>(levelGridWidth[treeDepth] - 1u));
 
+            // obtain leaf node index from the point position
             uint32_t leafLevelIndex =
                 (uint32_t) levelIndex[treeDepth] + ((spread16(gridCoord.y) << 1) | spread16(gridCoord.x));
 
+            // if the node doesnt havy any points yet, set extra info
             if (nodes[leafLevelIndex].particleIndexAmount == 0u)
             {
                 nodes[leafLevelIndex].BBcentre =
@@ -362,11 +358,13 @@ class NBodySolverFMM_SYM_MORTON : public NBodySolver<T>
                 nodes[leafLevelIndex].firstParticleIndex = i;
             }
 
+            // add point to node
             nodes[leafLevelIndex].particleIndexAmount += 1u;
             nodes[leafLevelIndex].centreOfMass += points[i].position;
             // nodes[leafLevelIndex].M0 += 1.0;
         }
 
+        // for each leaf node calculate the mass distributions
         for (int n = levelIndex[treeDepth]; n < levelIndex[treeDepth] + levelSize[treeDepth]; n++)
         {
             // if (nodes[n].M0 != 0.0)
@@ -399,6 +397,7 @@ class NBodySolverFMM_SYM_MORTON : public NBodySolver<T>
         std::array<glm::dvec2, 4> BBcentreOffset{
             glm::dvec2(0.5, 0.5), glm::dvec2(-0.5, 0.5), glm::dvec2(0.5, -0.5), glm::dvec2(-0.5, -0.5)};
 
+        // start at second deepest level and work up to root
         for (int l = treeDepth - 1; l >= 0; l--)
         {
             // const int cells_per_axis = 1 << l;
@@ -406,6 +405,7 @@ class NBodySolverFMM_SYM_MORTON : public NBodySolver<T>
             // const double BBlength_l = max_minus_min_pos / static_cast<double>(cells_per_axis);
             // const double BBlength_l_child = max_minus_min_pos / static_cast<double>(cells_per_axis_child);
 
+            // loop over each node in the current level
             for (int i = 0; i < levelSize[l]; i++)
             {
                 int nodeIndex = levelIndex[l] + i;
@@ -420,7 +420,8 @@ class NBodySolverFMM_SYM_MORTON : public NBodySolver<T>
                 // uint32_t iy = compact16(i >> 1);
                 // nodes[nodeIndex].BBcentre = minPos + glm::dvec2(ix + 0.5, iy + 0.5) * BBlength_l;
 
-                for (int j = 3; j >= 0; j--) // loop over all children of node i in level l
+                // loop over all children of node i in level l and calculate BB and children amount
+                for (int j = 3; j >= 0; j--)
                 {
                     unsigned int childIndex = potentialFirstChildIndex + j;
                     if (nodes[childIndex].particleIndexAmount != 0u)
@@ -454,6 +455,7 @@ class NBodySolverFMM_SYM_MORTON : public NBodySolver<T>
                 //    continue;
                 //}
 
+                // if our current node has any particles then finish COM and mass distribution calculations
                 if (nodes[nodeIndex].particleIndexAmount != 0u)
                 {
                     nodes[nodeIndex].centreOfMass /= nodes[nodeIndex].M0;

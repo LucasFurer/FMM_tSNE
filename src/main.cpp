@@ -11,8 +11,8 @@ int main()
     // put stuff into the app
     glm::mat4 model = glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), glm::vec3(1.0f));
 
-    Shader shader = Shader((std::filesystem::current_path().string() + "/shaders/shader_tsne.vs").c_str(),
-                           (std::filesystem::current_path().string() + "/shaders/shader_tsne.fs").c_str());
+    Shader shader_tsne = Shader((std::filesystem::current_path().string() + "/shaders/shader_tsne.vs").c_str(),
+                                (std::filesystem::current_path().string() + "/shaders/shader_tsne.fs").c_str());
 
     TSNE_buffers tsne(1.0,            // min_theta
                       1.0,            // max_theta
@@ -22,11 +22,18 @@ int main()
                       30.0f,          // perplexity
                       216308u         // seed: 216308u, 592340823u, 4523u, 296343u
     );
-    // tsne.nBodySelect = "FMM_SYM_MORTON";
-    tsne.nBodySelect = "PM";
+    tsne.nBodySelect = "FMMfast_SYM_MORTON";
+    // tsne.nBodySelect = "PM";
 
-    Renderable renderable(GL_POINTS, model, tsne.embeddedBuffer, &shader, nullptr);
-    std::vector<Renderable> renderables{renderable};
+    Renderable points_renderable(GL_POINTS, model, tsne.embeddedBuffer, &shader_tsne, nullptr);
+
+    Shader shader_lines = Shader((std::filesystem::current_path().string() + "/shaders/shader_lines.vs").c_str(),
+                                 (std::filesystem::current_path().string() + "/shaders/shader_lines.fs").c_str());
+
+    Renderable tree_structure_renderable(GL_LINES, model, tsne.nodeBuffer, &shader_lines, nullptr);
+    Renderable forces_renderable(GL_LINES, model, tsne.forceBuffer, &shader_lines, nullptr);
+
+    std::vector<Renderable> renderables{points_renderable, tree_structure_renderable, forces_renderable};
 
     TwoDCamera camera = TwoDCamera(glm::vec3(0.0f, 0.0f, -800.0f),
                                    glm::vec3(0.0f, 1.0f, 0.0f),
