@@ -18,11 +18,7 @@ template <typename T>
 class SolverSFMMFast : public NBodySolver<T>
 {
   public:
-    // unsigned int treeDepth;
     std::vector<NodeSFMMFast> nodes; // leaf_nodes
-    // std::vector<unsigned int> levelIndex;     // starting node index of each tree level
-    // std::vector<unsigned int> levelSize;      // number of nodes in this and every previous level
-    // std::vector<unsigned int> levelGridWidth; // width of the grid in terms of number of cells
 
     std::function<void(double&, NodeSFMMFast&, NodeSFMMFast&)> kernelNN;
     std::function<void(double&, T&, NodeSFMMFast&)> kernelPN;
@@ -32,28 +28,25 @@ class SolverSFMMFast : public NBodySolver<T>
 
     SolverSFMMFast(std::function<void(double&, NodeSFMMFast&, NodeSFMMFast&)> initKernelNN,
                    std::function<void(double&, T&, NodeSFMMFast&)> initKernelPN,
-                   std::function<void(double&, T&, T&)> initKernelPP
-                   // int initMaxChildren,
-                   // unsigned int initTreeDepth,
-                   // double initTheta
-    )
+                   std::function<void(double&, T&, T&)> initKernelPP,
+                   int initMaxChildren,
+                   double initTheta)
     {
         kernelNN = initKernelNN;
         kernelPN = initKernelPN;
         kernelPP = initKernelPP;
-        // this->maxChildren = initMaxChildren;
-        // initNodesSize(initTreeDepth);
-        // this->theta = initTheta;
+        this->maxChildren = initMaxChildren;
+        this->theta = initTheta;
     }
 
     void solveNbody(double& total, std::vector<T>& points) override
     {
-        // traverse_SYM_NN(total, points, nodes[0], nodes[0], this->theta);
+        traverse_SYM_NN(total, points, nodes[0], nodes[0], this->theta);
 
-        // double one_over_M0 = 1.0 / nodes[0].M0;
-        // nodes[0].C2 *= one_over_M0;
-        // nodes[0].C3 *= one_over_M0;
-        // applyForces(points, nodes[0]);
+        double one_over_M0 = 1.0 / nodes[0].M0;
+        nodes[0].C2 *= one_over_M0;
+        nodes[0].C3 *= one_over_M0;
+        applyForces(points, nodes[0]);
     }
 
     void updateTree(std::vector<T>& points, glm::dvec2 minPos, glm::dvec2 maxPos) override
@@ -63,12 +56,13 @@ class SolverSFMMFast : public NBodySolver<T>
 
 #ifdef INDEX_TRACKER
         createMortonCode(points, negMinPos, largestAxis);
+        // maybe try normal std::sort
         boost::sort::spreadsort::integer_sort(
             points.begin(), points.end(), TsnePoint2DRightshift(), TsnePoint2DLessthan());
 #endif
 
-        std::cout << "create tree now\n";
         create_tree(points, minPos, largestAxis);
+        compute_mass_distribution(points);
     }
 
     std::vector<VertexPos2Col3> getNodesBufferData(int nodeLevelToShow) override
@@ -166,7 +160,7 @@ class SolverSFMMFast : public NBodySolver<T>
                      firstNodeChildIndex++)
                 {
                     for (int secondNodeChildIndex = firstNodeChildIndex;
-                         secondNodeChildIndex < node_A.first_child_index + node_A.first_child_index;
+                         secondNodeChildIndex < node_A.first_child_index + node_A.child_index_amount;
                          secondNodeChildIndex++)
                     {
                         traverse_SYM_NN(total, points, nodes[firstNodeChildIndex], nodes[secondNodeChildIndex], theta);
@@ -203,7 +197,7 @@ class SolverSFMMFast : public NBodySolver<T>
         {
             kernelPN(total, firstPoint, secondNode);
         }
-        else if (secondNode.first_child_index == 0) // sym point point
+        else if (secondNode.child_index_amount == 0) // sym point point
         {
 
             for (int secondNodePointIndex = secondNode.first_particle_index;
@@ -253,6 +247,10 @@ class SolverSFMMFast : public NBodySolver<T>
         std::vector<unsigned char> depths;
 
         NodeSFMMFast root{};
+        root.M2.zeros();
+        root.C1.zeros();
+        root.C2.zeros();
+        root.C3.zeros();
         root.BB_centre = minPos + 0.5 * largestAxis;
         root.BB_length = largestAxis;
         root.first_particle_index = 0;
@@ -309,6 +307,10 @@ class SolverSFMMFast : public NBodySolver<T>
                 if (bounds[q] == bounds[q + 1]) continue;
 
                 NodeSFMMFast child{};
+                child.M2.zeros();
+                child.C1.zeros();
+                child.C2.zeros();
+                child.C3.zeros();
                 child.BB_length = child_length;
                 child.BB_centre = centre + glm::dvec2((q & 1u) ? offset : -offset, (q & 2u) ? offset : -offset);
                 child.first_particle_index = bounds[q];
@@ -319,6 +321,67 @@ class SolverSFMMFast : public NBodySolver<T>
                 ++child_count;
             }
             nodes[n].child_index_amount = child_count;
+        }
+    }
+
+    void compute_mass_distribution(const std::vector<T>& points)
+    {
+        for (size_t n = nodes.size(); n-- > 0;) // hmmm weird loop why no --n at the end
+        {
+            NodeSFMMFast& node = nodes[n];
+
+            if (node.child_index_amount == 0)
+            {
+                // calculate M0 and COM
+                glm::dvec2 sum{0.0};
+                for (unsigned i = 0; i < node.particle_index_amount; ++i)
+                    sum += points[node.first_particle_index + i].position;
+
+                node.M0 = static_cast<double>(node.particle_index_amount); // unit mass per point
+                node.COM = sum / node.M0;
+
+                // calculate M2
+                for (unsigned i = 0; i < node.particle_index_amount; ++i)
+                {
+                    glm::dvec2 relativeCoord = points[node.first_particle_index + i].position - nodes[n].COM;
+
+                    Fastor::Tensor<double, 2, 2> outer_product;
+                    outer_product(0, 0) = relativeCoord.x * relativeCoord.x;
+                    outer_product(0, 1) = relativeCoord.x * relativeCoord.y;
+                    outer_product(1, 0) = relativeCoord.y * relativeCoord.x;
+                    outer_product(1, 1) = relativeCoord.y * relativeCoord.y;
+                    nodes[n].M2 += outer_product;
+                }
+            }
+            else
+            {
+                // calculate M0 and COM
+                double mass = 0.0;
+                glm::dvec2 weighted{0.0};
+                for (unsigned c = 0; c < node.child_index_amount; ++c)
+                {
+                    const NodeSFMMFast& child = nodes[node.first_child_index + c];
+                    mass += child.M0;
+                    weighted += child.M0 * child.COM;
+                }
+                node.M0 = mass;
+                node.COM = weighted / mass;
+
+                // calculate M2
+                for (unsigned c = 0; c < node.child_index_amount; ++c)
+                {
+                    glm::dvec2 relativeCoord = nodes[node.first_child_index + c].COM - nodes[n].COM;
+
+                    Fastor::Tensor<double, 2, 2> outer_product;
+                    outer_product(0, 0) = relativeCoord.x * relativeCoord.x;
+                    outer_product(0, 1) = relativeCoord.x * relativeCoord.y;
+                    outer_product(1, 0) = relativeCoord.y * relativeCoord.x;
+                    outer_product(1, 1) = relativeCoord.y * relativeCoord.y;
+                    nodes[n].M2 += outer_product;
+
+                    nodes[n].M2 += nodes[c].M2;
+                }
+            }
         }
     }
 

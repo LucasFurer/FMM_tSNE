@@ -137,7 +137,7 @@ class TSNE_buffers final : public TSNE
                 derivative_timer.endTimer("__updateDerivative");
 
                 Timer update_timer;
-                // updatePoints();
+                updatePoints();
                 update_timer.endTimer("__updatePoints");
 
                 Timer time_update_tree;
