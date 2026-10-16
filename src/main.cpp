@@ -103,8 +103,8 @@ int main()
                       30.0f,          // perplexity
                       216308u         // seed: 216308u, 592340823u, 4523u, 296343u
     );
-    // tsne.nBodySelect = "FMMfast_SYM_MORTON";
-    tsne.nBodySelect = "BH";
+    tsne.nBodySelect = "FMMfast_SYM_MORTON";
+    // tsne.nBodySelect = "BH";
 
     Renderable points_renderable(GL_POINTS, model, tsne.embeddedBuffer, &shader_tsne, nullptr);
 

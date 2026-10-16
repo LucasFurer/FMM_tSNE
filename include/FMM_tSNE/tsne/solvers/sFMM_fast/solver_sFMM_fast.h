@@ -1,5 +1,6 @@
 #pragma once
 
+#include <FMM_tSNE/timer/timer.h>
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
 #include <FMM_tSNE/tsne/solvers/sFMM/node_sFMM.h>
 #include <FMM_tSNE/tsne/solvers/sFMM_fast/node_sFMM_fast.h>
@@ -56,7 +57,6 @@ class SolverSFMMFast : public NBodySolver<T>
 
 #ifdef INDEX_TRACKER
         createMortonCode(points, negMinPos, largestAxis);
-        // maybe try normal std::sort
         boost::sort::spreadsort::integer_sort(
             points.begin(), points.end(), TsnePoint2DRightshift(), TsnePoint2DLessthan());
 #endif
@@ -246,15 +246,8 @@ class SolverSFMMFast : public NBodySolver<T>
         // depth of every node, parallel to `nodes` (NodeSFMMFast doesn't store it)
         std::vector<unsigned char> depths;
 
-        NodeSFMMFast root{};
-        root.M2.zeros();
-        root.C1.zeros();
-        root.C2.zeros();
-        root.C3.zeros();
-        root.BB_centre = minPos + 0.5 * largestAxis;
-        root.BB_length = largestAxis;
-        root.first_particle_index = 0;
-        root.particle_index_amount = static_cast<unsigned>(points.size());
+        NodeSFMMFast root(minPos + 0.5 * largestAxis, largestAxis, 0, static_cast<unsigned>(points.size()));
+
         nodes.push_back(root);
         depths.push_back(0);
 
@@ -306,15 +299,10 @@ class SolverSFMMFast : public NBodySolver<T>
             {
                 if (bounds[q] == bounds[q + 1]) continue;
 
-                NodeSFMMFast child{};
-                child.M2.zeros();
-                child.C1.zeros();
-                child.C2.zeros();
-                child.C3.zeros();
-                child.BB_length = child_length;
-                child.BB_centre = centre + glm::dvec2((q & 1u) ? offset : -offset, (q & 2u) ? offset : -offset);
-                child.first_particle_index = bounds[q];
-                child.particle_index_amount = bounds[q + 1] - bounds[q];
+                NodeSFMMFast child(centre + glm::dvec2((q & 1u) ? offset : -offset, (q & 2u) ? offset : -offset),
+                                   child_length,
+                                   bounds[q],
+                                   bounds[q + 1] - bounds[q]);
 
                 nodes.push_back(child);
                 depths.push_back(static_cast<unsigned char>(depth + 1));
@@ -352,6 +340,10 @@ class SolverSFMMFast : public NBodySolver<T>
                     outer_product(1, 1) = relativeCoord.y * relativeCoord.y;
                     nodes[n].M2 += outer_product;
                 }
+            }
+            else if (node.child_index_amount == 1)
+            {
+                node = nodes[node.first_child_index];
             }
             else
             {

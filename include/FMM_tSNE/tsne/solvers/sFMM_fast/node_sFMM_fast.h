@@ -6,14 +6,14 @@
 
 struct NodeSFMMFast
 {
-    glm::dvec2 COM;
+    glm::dvec2 COM{};
 
-    double M0;
-    Fastor::Tensor<double, 2, 2> M2;
+    double M0{};
+    Fastor::Tensor<double, 2, 2> M2{};
 
-    Fastor::Tensor<double, 2> C1;
-    Fastor::Tensor<double, 2, 2> C2;
-    Fastor::Tensor<double, 2, 2, 2> C3;
+    Fastor::Tensor<double, 2> C1{};
+    Fastor::Tensor<double, 2, 2> C2{};
+    Fastor::Tensor<double, 2, 2, 2> C3{};
 
     glm::dvec2 BB_centre;
     double BB_length;
@@ -23,4 +23,15 @@ struct NodeSFMMFast
 
     unsigned int first_child_index;   // firstChildIndex + 3 is index of last child
     unsigned char child_index_amount; // amount of children (max is 4)
+
+    NodeSFMMFast(glm::dvec2 in_BB_centre,
+                 double in_BB_length,
+                 unsigned int in_first_particle_index,
+                 unsigned int in_particle_index_amount)
+        : BB_centre{in_BB_centre},
+          BB_length{in_BB_length},
+          first_particle_index{in_first_particle_index},
+          particle_index_amount{in_particle_index_amount}
+    {
+    }
 };
