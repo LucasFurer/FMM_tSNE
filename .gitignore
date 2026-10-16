@@ -1,6 +1,7 @@
 build/
 data/
 graphCSV/
+plotOutput/
 .cache/
 .clang-format
 .clang-tidy

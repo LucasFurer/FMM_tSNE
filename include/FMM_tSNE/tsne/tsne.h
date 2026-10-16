@@ -13,11 +13,13 @@
 #include <FMM_tSNE/opengl_interaction/scene.h>
 #include <FMM_tSNE/timer/timer.h>
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
+#include <FMM_tSNE/tsne/solvers/BH/solver_BH.h>
 #include <FMM_tSNE/tsne/solvers/PM/solver_PM.h>
 #include <FMM_tSNE/tsne/solvers/naive/solver_naive.h>
 #include <FMM_tSNE/tsne/solvers/sFMM/solver_sFMM.h>
 #include <FMM_tSNE/tsne/solvers/sFMM_fast/solver_sFMM_fast.h>
 #include <FMM_tSNE/tsne/solvers/solver.h>
+#include <FMM_tSNE/tsne/solvers/solver_tree.h>
 #include <limits>
 #include <map>
 #include <numbers>
@@ -112,9 +114,8 @@ class TSNE
 
         int max_children_per_node = 16;
         nBodySolvers["naive"] = new NBodySolverNaive<TsnePoint2D>(&TSNEnaiveKernel);
-        // nBodySolvers["BH"] =
-        //     new NBodySolverBH<TsnePoint2D>(&TSNEBHPNKernel, &TSNEBHPPKernel, max_children_per_node, max_theta);
-        // nBodySolvers["BH"]->updateTree(embeddedPoints, minPos, maxPos);
+        nBodySolvers["BH"] = new NBodySolverTree<TsnePoint2D, Policy_BH>(max_children_per_node, max_theta);
+        nBodySolvers["BH"]->updateTree(embeddedPoints, minPos, maxPos);
         // nBodySolvers["BHR"] =
         //     new NBodySolverBHR<TsnePoint2D>(&TSNEBHRNPKernel, &TSNEBHRPPKernel, max_children_per_node, max_theta);
         // nBodySolvers["BHR"]->updateTree(embeddedPoints, minPos, maxPos);
@@ -202,11 +203,11 @@ class TSNE
         updateMinMaxPos();
 
         setThetaForAll(min_theta, cell_size);
-        nBodySolvers["BH"]->updateTree(embeddedPoints, minPos, maxPos);
-        nBodySolvers["BHR"]->updateTree(embeddedPoints, minPos, maxPos);
-        nBodySolvers["BHMP"]->updateTree(embeddedPoints, minPos, maxPos);
-        nBodySolvers["BHRMP"]->updateTree(embeddedPoints, minPos, maxPos);
-        nBodySolvers["FMM"]->updateTree(embeddedPoints, minPos, maxPos);
+        // nBodySolvers["BH"]->updateTree(embeddedPoints, minPos, maxPos);
+        // nBodySolvers["BHR"]->updateTree(embeddedPoints, minPos, maxPos);
+        // nBodySolvers["BHMP"]->updateTree(embeddedPoints, minPos, maxPos);
+        // nBodySolvers["BHRMP"]->updateTree(embeddedPoints, minPos, maxPos);
+        // nBodySolvers["FMM"]->updateTree(embeddedPoints, minPos, maxPos);
         nBodySolvers["PM"]->updateTree(embeddedPoints, minPos, maxPos);
 #ifdef INDEX_TRACKER
         // nBodySolvers["FMM_MORTON"]->updateTree(embeddedPoints, minPos, maxPos);

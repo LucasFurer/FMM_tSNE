@@ -2,6 +2,7 @@
 
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
 #include <FMM_tSNE/tsne/tsne.h>
+#include <GLFW/glfw3.h>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -15,6 +16,7 @@
 #include <limits>
 #include <map>
 #include <numeric>
+#include <print>
 #include <ranges>
 #include <string>
 #include <thread>
@@ -165,8 +167,15 @@ class TsneTest
             double chosen_theta = thetas[t];
             double chosen_cell_size = cell_sizes[t];
 
+            std::print("about to reset tsne with following:\n{}\n{}\n{}\n{}\n{}\n",
+                       chosen_theta,
+                       chosen_cell_size,
+                       dataset_type,
+                       data_size,
+                       perplexity_value);
             tsne.resetTsne(
                 chosen_theta, chosen_theta, chosen_cell_size, dataset_type, data_size, perplexity_value, seed);
+            std::print("done resetting\n");
 
             for (std::string candidate : candidates)
             {
