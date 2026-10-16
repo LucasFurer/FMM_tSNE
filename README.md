@@ -9,3 +9,6 @@
 
 #### Description:
 Implementation of t-SNE using the FMM coded using modern C++.
+
+#### To do:
+move plotOutput/ graphCSV/ tsne_python_env/ grapher.ipynb MnistLoader.ipynb into new python/ folder
