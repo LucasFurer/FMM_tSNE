@@ -4,6 +4,7 @@
 #include <FMM_tSNE/tsne/tsne.h>
 #include <GLFW/glfw3.h>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <exception>
@@ -823,6 +824,93 @@ class TsneTest
                           "_dataset" + dataset_type + ".csv");
             writeToFile3(error, calculationtime, theta_tracker, methodPath);
         }
+    }
+
+    void time_accuracy_test(std::string dataset_type,
+                            int data_size,
+                            float perplexity_value,
+                            int iteration_amount,
+                            int repeat_count,
+                            double theta,
+                            double cell_size,
+                            unsigned int seed)
+    {
+        TSNE tsne(theta, theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+
+        std::vector<TsnePoint2D> naive_solution_rep(data_size);
+        std::vector<TsnePoint2D> fast_solution_rep(data_size);
+
+        std::vector<TsnePoint2D> naive_solution(data_size);
+        std::vector<TsnePoint2D> fast_solution(data_size);
+
+        double error{};
+
+        for (int t = 0; t < iteration_amount; t++)
+        {
+            tsne.updateMinMaxPos();
+
+            // correct solution up to machine precision
+            tsne.resetDeriv();
+            tsne.iteration_counter = t;
+            tsne.nBodySelect = "naive";
+            tsne.updateDerivative();
+            naive_solution = tsne.embeddedPoints;
+
+            tsne.resetDeriv();
+            tsne.iteration_counter = t;
+            tsne.nBodySelect = "naive";
+            tsne.resetDeriv();
+            tsne.updateRepulsive();
+            naive_solution_rep = tsne.embeddedPoints;
+
+            tsne.resetDeriv();
+            tsne.iteration_counter = t;
+            tsne.nBodySelect = "FMMfast_SYM_MORTON";
+            tsne.nBodySolvers["FMMfast_SYM_MORTON"]->updateTree(tsne.embeddedPoints, tsne.minPos, tsne.maxPos);
+            // tsne.updateDerivative();
+            tsne.resetDeriv();
+            tsne.updateRepulsive();
+            fast_solution_rep = tsne.embeddedPoints;
+            error += getNMAE(naive_solution_rep, fast_solution_rep);
+
+            // update points with naive solution
+            tsne.resetDeriv();
+            tsne.iteration_counter = t;
+            tsne.nBodySelect = "naive";
+            tsne.embeddedPoints = naive_solution;
+            tsne.updatePoints();
+        }
+        std::cout << "error: " << error / iteration_amount << "\n";
+
+        std::chrono::microseconds total_time{};
+
+        for (int r{}; r < repeat_count; ++r)
+        {
+            tsne.resetTsne(theta, theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+            for (int t = 0; t < iteration_amount; t++)
+            {
+                tsne.updateMinMaxPos();
+
+                tsne.resetDeriv();
+                tsne.iteration_counter = t;
+                tsne.nBodySelect = "FMMfast_SYM_MORTON";
+                Timer timer{};
+                tsne.nBodySolvers["FMMfast_SYM_MORTON"]->updateTree(tsne.embeddedPoints, tsne.minPos, tsne.maxPos);
+                tsne.updateDerivative();
+                total_time += timer.elapsed_time();
+                fast_solution = tsne.embeddedPoints;
+
+                tsne.resetDeriv();
+                tsne.iteration_counter = t;
+                tsne.nBodySelect = "FMMfast_SYM_MORTON";
+                tsne.embeddedPoints = fast_solution;
+                tsne.updatePoints();
+            }
+        }
+
+        total_time /= repeat_count;
+
+        std::cout << "time: " << total_time << "\n";
     }
 
   private:

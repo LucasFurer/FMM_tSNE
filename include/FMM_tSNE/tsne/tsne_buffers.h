@@ -120,6 +120,7 @@ class TSNE_buffers final : public TSNE
             reached_thousand_iterations = true;
             desired_iteration_per_second = 0.0f;
             thousand_iteration_timer.endTimer("A thousand iterations");
+            std::cout << thousand_iteration_timer.elapsed_time() << "\n";
 
             costFunction(this->embeddedPoints, this->Pmatrix);
         }

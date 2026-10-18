@@ -17,7 +17,14 @@ class Timer
 
         std::chrono::microseconds elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-        std::cout << message << ": " << formatWithDots(elapsed_time.count()) << " microseconds\n";
+        // std::cout << message << ": " << formatWithDots(elapsed_time.count()) << " microseconds\n";
+    }
+
+    std::chrono::microseconds elapsed_time()
+    {
+        end = std::chrono::high_resolution_clock::now();
+
+        return std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     }
 
   private:

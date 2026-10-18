@@ -1,6 +1,6 @@
 #include <FMM_tSNE/app.h>
 #include <FMM_tSNE/cameras/two_D_camera.h>
-#include <FMM_tSNE/tsne/solvers/tsne_test.h>
+#include <FMM_tSNE/tsne/tests/tsne_test.h>
 #include <FMM_tSNE/tsne/tsne_buffers.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -85,6 +85,16 @@ int main()
     //     216308u, // seed: 4523u
     //     "FMM_SYM_MORTON" // method: "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
     //);
+
+    tsne_test.time_accuracy_test("MNIST_digits", // data_set
+                                 1000,           // data_size
+                                 30.0f,          // perplexity
+                                 1000,           // iteration_amount
+                                 10,             // repeat this many times
+                                 0.5f,           // theta
+                                 0.5f,           // cell_size
+                                 216308u         // seed
+    );
 
     std::cout << "done with tests\n";
     // -------------------------------
