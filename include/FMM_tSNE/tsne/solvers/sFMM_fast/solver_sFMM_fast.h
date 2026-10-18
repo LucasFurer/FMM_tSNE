@@ -32,7 +32,7 @@ class SolverSFMMFast : public NBodySolver<T>
 
     void solveNbody(double& total, std::vector<T>& points) override
     {
-        traverse_SYM_NN(total, points, nodes[0], nodes[0], this->theta);
+        traverse_SYM_NN(total, points, nodes[0], nodes[0], this->theta * this->theta);
 
         double one_over_M0 = 1.0 / nodes[0].M0;
         nodes[0].C2 *= one_over_M0;
@@ -66,161 +66,99 @@ class SolverSFMMFast : public NBodySolver<T>
 
   private:
     void
-    traverse_SYM_NN(double& total, std::vector<T>& points, NodeSFMMFast& node_A, NodeSFMMFast& node_B, double theta)
+    traverse_SYM_NN(double& total, std::vector<T>& points, NodeSFMMFast& node_A, NodeSFMMFast& node_B, double theta_sq)
     {
-        glm::dvec2 diff = node_A.COM - node_B.COM;
-        // double dist = glm::length(diff);
-        double dist = glm::dot(diff, diff);
+        if (&node_A == &node_B)
+        {
+            if (node_A.child_index_amount == 0)
+            {
+                const unsigned end = node_A.first_particle_index + node_A.particle_index_amount;
+                for (unsigned i = node_A.first_particle_index; i < end; ++i)
+                    for (unsigned j = i + 1; j < end; ++j)
+                        TSNE_sFMMfast_PP(total, points[i], points[j]);
+            }
+            else
+            {
+                const unsigned end = node_A.first_child_index + node_A.child_index_amount;
+                for (unsigned i = node_A.first_child_index; i < end; ++i)
+                    for (unsigned j = i; j < end; ++j)
+                        traverse_SYM_NN(total, points, nodes[i], nodes[j], theta_sq);
+            }
 
-        double threshold = (node_A.BB_length + node_B.BB_length) / theta;
-        if (dist > threshold * threshold) // sym node node
-        // if ((node_A.BB_length + node_B.BB_length) / dist < theta) // sym node node
+            return;
+        }
+
+        // ----------------------------------
+
+        glm::dvec2 diff = node_A.COM - node_B.COM;
+        double length_sum = (node_A.BB_length + node_B.BB_length);
+
+        if (glm::dot(diff, diff) * theta_sq > length_sum * length_sum)
         {
             TSNE_sFMMfast_NN(total, node_A, node_B);
         }
-        else if (node_A.child_index_amount == 0) // traverse for each point in first
+        else if (node_A.child_index_amount == 0)
         {
-
-            if (&node_A == &node_B)
+            for (int firstNodePointIndex = node_A.first_particle_index;
+                 firstNodePointIndex < node_A.first_particle_index + node_A.particle_index_amount;
+                 firstNodePointIndex++)
             {
-                for (int firstNodePointIndex = node_A.first_particle_index;
-                     firstNodePointIndex < node_A.first_particle_index + node_A.particle_index_amount;
-                     firstNodePointIndex++)
-                {
-                    for (int secondNodePointIndex = firstNodePointIndex;
-                         secondNodePointIndex < node_B.first_particle_index + node_B.particle_index_amount;
-                         secondNodePointIndex++)
-                    {
-                        if (points[firstNodePointIndex].ID != points[secondNodePointIndex].ID)
-                        {
-                            // can we exclude the PP self interactions somehow in the for loops?
-                            TSNE_sFMMfast_PP(total, points[firstNodePointIndex], points[secondNodePointIndex]);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                for (int firstNodePointIndex = node_A.first_particle_index;
-                     firstNodePointIndex < node_A.first_particle_index + node_A.particle_index_amount;
-                     firstNodePointIndex++)
-                {
-                    traverse_SYM_PN(total, points, points[firstNodePointIndex], node_B, theta);
-                }
+                traverse_SYM_PN(total, points, points[firstNodePointIndex], node_B, theta_sq);
             }
         }
-        else if (node_B.child_index_amount == 0) // traverse for each point in second
+        else if (node_B.child_index_amount == 0)
         {
-
-            if (&node_A == &node_B)
+            for (int secondNodePointIndex = node_B.first_particle_index;
+                 secondNodePointIndex < node_B.first_particle_index + node_B.particle_index_amount;
+                 secondNodePointIndex++)
             {
-                for (int secondNodePointIndex = node_B.first_particle_index;
-                     secondNodePointIndex < node_B.first_particle_index + node_B.particle_index_amount;
-                     secondNodePointIndex++)
-                {
-                    for (int firstNodePointIndex = secondNodePointIndex;
-                         firstNodePointIndex < node_A.first_particle_index + node_A.particle_index_amount;
-                         firstNodePointIndex++)
-                    {
-                        if (points[firstNodePointIndex].ID != points[secondNodePointIndex].ID)
-                        {
-                            // can we exclude the PP self interactions somehow in the for loops?
-                            TSNE_sFMMfast_PP(total, points[firstNodePointIndex], points[secondNodePointIndex]);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                for (int secondNodePointIndex = node_B.first_particle_index;
-                     secondNodePointIndex < node_B.first_particle_index + node_B.particle_index_amount;
-                     secondNodePointIndex++)
-                {
-                    traverse_SYM_PN(total, points, points[secondNodePointIndex], node_A, theta);
-                }
+                traverse_SYM_PN(total, points, points[secondNodePointIndex], node_A, theta_sq);
             }
         }
-        else // traverse for each node in first and second
+        else
         {
-
-            if (&node_A == &node_B) // if nodes from interaction pair are the same then dont add duplicates
+            for (int firstNodeChildIndex = node_A.first_child_index;
+                 firstNodeChildIndex < node_A.first_child_index + node_A.child_index_amount;
+                 firstNodeChildIndex++)
             {
-                for (int firstNodeChildIndex = node_A.first_child_index;
-                     firstNodeChildIndex < node_A.first_child_index + node_A.child_index_amount;
-                     firstNodeChildIndex++)
+                for (int secondNodeChildIndex = node_B.first_child_index;
+                     secondNodeChildIndex < node_B.first_child_index + node_B.child_index_amount;
+                     secondNodeChildIndex++)
                 {
-                    for (int secondNodeChildIndex = firstNodeChildIndex;
-                         secondNodeChildIndex < node_A.first_child_index + node_A.child_index_amount;
-                         secondNodeChildIndex++)
-                    {
-                        traverse_SYM_NN(total, points, nodes[firstNodeChildIndex], nodes[secondNodeChildIndex], theta);
-                    }
-                }
-            }
-            else // if nodes from interaction pair are the NOT same then add all combinations
-            {
-                for (int firstNodeChildIndex = node_A.first_child_index;
-                     firstNodeChildIndex < node_A.first_child_index + node_A.child_index_amount;
-                     firstNodeChildIndex++)
-                {
-                    for (int secondNodeChildIndex = node_B.first_child_index;
-                         secondNodeChildIndex < node_B.first_child_index + node_B.child_index_amount;
-                         secondNodeChildIndex++)
-                    {
-                        traverse_SYM_NN(total, points, nodes[firstNodeChildIndex], nodes[secondNodeChildIndex], theta);
-                    }
+                    traverse_SYM_NN(total, points, nodes[firstNodeChildIndex], nodes[secondNodeChildIndex], theta_sq);
                 }
             }
         }
     }
 
-    void traverse_SYM_PN(double& total, std::vector<T>& points, T& firstPoint, NodeSFMMFast& secondNode, double theta)
+    void
+    traverse_SYM_PN(double& total, std::vector<T>& points, T& firstPoint, NodeSFMMFast& secondNode, double theta_sq)
     {
         glm::dvec2 diff = firstPoint.position - secondNode.COM;
-        // double dist = glm::length(diff);
-        double dist = glm::dot(diff, diff);
+        double length_sum = secondNode.BB_length;
 
-        // double threshold = (secondNode.BB_length) / (theta * 0.35);
-        double threshold = secondNode.BB_length / theta;
-        if (dist > threshold * threshold) // sym point node
-        // if (secondNode.BB_length / dist < theta)
+        if (glm::dot(diff, diff) * theta_sq > length_sum * length_sum)
         {
             TSNE_sFMMfast_PN(total, firstPoint, secondNode);
         }
-        else if (secondNode.child_index_amount == 0) // sym point point
+        else if (secondNode.child_index_amount == 0)
         {
 
             for (int secondNodePointIndex = secondNode.first_particle_index;
                  secondNodePointIndex < secondNode.first_particle_index + secondNode.particle_index_amount;
                  secondNodePointIndex++)
             {
-                if (points[secondNodePointIndex].ID != firstPoint.ID)
-                {
-                    TSNE_sFMMfast_PP(total, firstPoint, points[secondNodePointIndex]);
-                }
+                TSNE_sFMMfast_PP(total, firstPoint, points[secondNodePointIndex]);
             }
         }
-        else // traverse for each node in second
+        else
         {
 
             for (int secondNodeChildIndex = secondNode.first_child_index;
                  secondNodeChildIndex < secondNode.first_child_index + secondNode.child_index_amount;
                  secondNodeChildIndex++)
             {
-                traverse_SYM_PN(total, points, firstPoint, nodes[secondNodeChildIndex], theta);
-            }
-        }
-    }
-
-    void divide_by_mass()
-    {
-        for (int i = 0; i < nodes.size(); i++)
-        {
-            if (nodes[i].M0 != 0.0)
-            {
-                // nodes[i].C1 /= nodes[i].M0;
-                nodes[i].C2 /= nodes[i].M0;
-                nodes[i].C3 /= nodes[i].M0;
+                traverse_SYM_PN(total, points, firstPoint, nodes[secondNodeChildIndex], theta_sq);
             }
         }
     }
