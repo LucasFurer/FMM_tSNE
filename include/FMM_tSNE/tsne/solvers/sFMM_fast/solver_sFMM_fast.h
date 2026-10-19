@@ -470,14 +470,37 @@ class SolverSFMMFast : public NBodySolver<T>
             for (int point = node.first_particle_index; point < node.first_particle_index + node.particle_index_amount;
                  point++)
             {
+                node.C2xx = node.C2(0, 0);
+                node.C2xy = node.C2(0, 1);
+                node.C2yy = node.C2(1, 1);
+                node.C3xxx = node.C3(0, 0, 0);
+                node.C3xxy = node.C3(0, 0, 1);
+                node.C3xyy = node.C3(0, 1, 1);
+                node.C3yyy = node.C3(1, 1, 1);
+
                 glm::dvec2 x = points[point].position;
                 glm::dvec2 Z0 = node.COM;
                 Fastor::Tensor<double, 2> diff1 = {x.x - Z0.x, x.y - Z0.y};
 
-                Fastor::Tensor<double, 2> newC1 =
-                    node.C1 + Fastor::einsum<Fastor::Index<0>, Fastor::Index<0, 1>>(diff1, node.C2) +
-                    0.5 * Fastor::einsum<Fastor::Index<0>, Fastor::Index<0, 1>>(
-                              diff1, Fastor::einsum<Fastor::Index<0>, Fastor::Index<0, 1, 2>>(diff1, node.C3));
+                Fastor::Tensor<double, 2> diff1_einsum_C2{};
+                diff1_einsum_C2(0) = diff1(0) * node.C2xx + diff1(1) * node.C2xy;
+                diff1_einsum_C2(1) = diff1(0) * node.C2xy + diff1(1) * node.C2yy;
+
+                Fastor::Tensor<double, 2, 2> diff1_einsum_C3{};
+                diff1_einsum_C3(0, 0) = diff1(0) * node.C3xxx + diff1(1) * node.C3xxy;
+                diff1_einsum_C3(0, 1) = diff1(0) * node.C3xxy + diff1(1) * node.C3xyy;
+                diff1_einsum_C3(1, 0) = diff1(0) * node.C3xxy + diff1(1) * node.C3xyy;
+                diff1_einsum_C3(1, 1) = diff1(0) * node.C3xyy + diff1(1) * node.C3yyy;
+
+                Fastor::Tensor<double, 2> diff1_einsumx2_C3{};
+                diff1_einsumx2_C3(0) = diff1(0) * diff1_einsum_C3(0, 0) + diff1(1) * diff1_einsum_C3(1, 0);
+                diff1_einsumx2_C3(1) = diff1(0) * diff1_einsum_C3(0, 1) + diff1(1) * diff1_einsum_C3(1, 1);
+
+                // Fastor::Tensor<double, 2> newC1 =
+                //     node.C1 + Fastor::einsum<Fastor::Index<0>, Fastor::Index<0, 1>>(diff1, node.C2) +
+                //     0.5 * Fastor::einsum<Fastor::Index<0>, Fastor::Index<0, 1>>(
+                //               diff1, Fastor::einsum<Fastor::Index<0>, Fastor::Index<0, 1, 2>>(diff1, node.C3));
+                Fastor::Tensor<double, 2> newC1 = node.C1 + diff1_einsum_C2 + 0.5 * diff1_einsumx2_C3;
 
                 points[point].derivative += glm::dvec2(newC1(0), newC1(1));
 
