@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Fastor/Fastor.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 

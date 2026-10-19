@@ -1,17 +1,15 @@
 #pragma once
 
-#include "Fastor/tensor/Tensor.h"
-#include "glm/ext/vector_double2.hpp"
 #include <FMM_tSNE/timer/timer.h>
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
 #include <FMM_tSNE/tsne/solvers/sFMM/node_sFMM.h>
 #include <FMM_tSNE/tsne/solvers/sFMM_fast/kernel_sFMM_fast.h>
 #include <FMM_tSNE/tsne/solvers/sFMM_fast/node_sFMM_fast.h>
 #include <FMM_tSNE/tsne/solvers/solver.h>
-#include <Fastor/Fastor.h>
 #include <algorithm>
 #include <boost/sort/sort.hpp>
 #include <cstdint>
+#include <glm/ext/vector_double2.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -306,7 +304,8 @@ class SolverSFMMFast : public NBodySolver<T>
                 {
                     glm::dvec2 relativeCoord = nodes[node.first_child_index + c].COM - nodes[n].COM;
 
-                    // hmmm im not sure about nodes[node.first_child_index + c].M0 CHECK the algorithm again
+                    // hmmm im not sure about nodes[node.first_child_index + c].M0 CHECK the algorithm
+                    // again!!!!!!!!!!!!!!!!!!!!!!!
                     nodes[n].M2xx += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.x;
                     nodes[n].M2xy += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.y;
                     nodes[n].M2yy += nodes[node.first_child_index + c].M0 * relativeCoord.y * relativeCoord.y;
@@ -346,27 +345,23 @@ class SolverSFMMFast : public NBodySolver<T>
 
                 glm::dvec2 oldZ = nodes[child].COM;
                 glm::dvec2 newZ = node.COM;
-                Fastor::Tensor<double, 2> diff1 = {oldZ.x - newZ.x, oldZ.y - newZ.y};
+                glm::dvec2 diff = oldZ - newZ;
 
-                Fastor::Tensor<double, 2> diff1_einsum_C2{};
-                diff1_einsum_C2(0) = diff1(0) * node.C2xx + diff1(1) * node.C2xy;
-                diff1_einsum_C2(1) = diff1(0) * node.C2xy + diff1(1) * node.C2yy;
+                double diff_einsum_C2_x = diff.x * node.C2xx + diff.y * node.C2xy;
+                double diff_einsum_C2_y = diff.x * node.C2xy + diff.y * node.C2yy;
 
-                Fastor::Tensor<double, 2, 2> diff1_einsum_C3{};
-                diff1_einsum_C3(0, 0) = diff1(0) * node.C3xxx + diff1(1) * node.C3xxy;
-                diff1_einsum_C3(0, 1) = diff1(0) * node.C3xxy + diff1(1) * node.C3xyy;
-                diff1_einsum_C3(1, 0) = diff1(0) * node.C3xxy + diff1(1) * node.C3xyy;
-                diff1_einsum_C3(1, 1) = diff1(0) * node.C3xyy + diff1(1) * node.C3yyy;
+                double diff_einsum_C3_xx = diff.x * node.C3xxx + diff.y * node.C3xxy;
+                double diff_einsum_C3_xy = diff.x * node.C3xxy + diff.y * node.C3xyy;
+                double diff_einsum_C3_yy = diff.x * node.C3xyy + diff.y * node.C3yyy;
 
-                Fastor::Tensor<double, 2> diff1_einsumx2_C3{};
-                diff1_einsumx2_C3(0) = diff1(0) * diff1_einsum_C3(0, 0) + diff1(1) * diff1_einsum_C3(1, 0);
-                diff1_einsumx2_C3(1) = diff1(0) * diff1_einsum_C3(0, 1) + diff1(1) * diff1_einsum_C3(1, 1);
+                double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
+                double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
 
-                nodes[child].C1x += node.C1x + diff1_einsum_C2(0) + 0.5 * diff1_einsumx2_C3(0);
-                nodes[child].C1y += node.C1y + diff1_einsum_C2(1) + 0.5 * diff1_einsumx2_C3(1);
-                nodes[child].C2xx += node.C2xx + diff1_einsum_C3(0, 0);
-                nodes[child].C2xy += node.C2xy + diff1_einsum_C3(0, 1);
-                nodes[child].C2yy += node.C2yy + diff1_einsum_C3(1, 1);
+                nodes[child].C1x += node.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
+                nodes[child].C1y += node.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
+                nodes[child].C2xx += node.C2xx + diff_einsum_C3_xx;
+                nodes[child].C2xy += node.C2xy + diff_einsum_C3_xy;
+                nodes[child].C2yy += node.C2yy + diff_einsum_C3_yy;
                 nodes[child].C3xxx += node.C3xxx;
                 nodes[child].C3xxy += node.C3xxy;
                 nodes[child].C3xyy += node.C3xyy;
@@ -382,24 +377,20 @@ class SolverSFMMFast : public NBodySolver<T>
             {
                 glm::dvec2 x = points[point].position;
                 glm::dvec2 Z0 = node.COM;
-                Fastor::Tensor<double, 2> diff1 = {x.x - Z0.x, x.y - Z0.y};
+                glm::dvec2 diff = points[point].position - node.COM;
 
-                Fastor::Tensor<double, 2> diff1_einsum_C2{};
-                diff1_einsum_C2(0) = diff1(0) * node.C2xx + diff1(1) * node.C2xy;
-                diff1_einsum_C2(1) = diff1(0) * node.C2xy + diff1(1) * node.C2yy;
+                double diff_einsum_C2_x = diff.x * node.C2xx + diff.y * node.C2xy;
+                double diff_einsum_C2_y = diff.x * node.C2xy + diff.y * node.C2yy;
 
-                Fastor::Tensor<double, 2, 2> diff1_einsum_C3{};
-                diff1_einsum_C3(0, 0) = diff1(0) * node.C3xxx + diff1(1) * node.C3xxy;
-                diff1_einsum_C3(0, 1) = diff1(0) * node.C3xxy + diff1(1) * node.C3xyy;
-                diff1_einsum_C3(1, 0) = diff1(0) * node.C3xxy + diff1(1) * node.C3xyy;
-                diff1_einsum_C3(1, 1) = diff1(0) * node.C3xyy + diff1(1) * node.C3yyy;
+                double diff_einsum_C3_xx = diff.x * node.C3xxx + diff.y * node.C3xxy;
+                double diff_einsum_C3_xy = diff.x * node.C3xxy + diff.y * node.C3xyy;
+                double diff_einsum_C3_yy = diff.x * node.C3xyy + diff.y * node.C3yyy;
 
-                Fastor::Tensor<double, 2> diff1_einsumx2_C3{};
-                diff1_einsumx2_C3(0) = diff1(0) * diff1_einsum_C3(0, 0) + diff1(1) * diff1_einsum_C3(1, 0);
-                diff1_einsumx2_C3(1) = diff1(0) * diff1_einsum_C3(0, 1) + diff1(1) * diff1_einsum_C3(1, 1);
+                double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
+                double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
 
-                points[point].derivative.x += node.C1x + diff1_einsum_C2(0) + 0.5 * diff1_einsumx2_C3(0);
-                points[point].derivative.y += node.C1y + diff1_einsum_C2(1) + 0.5 * diff1_einsumx2_C3(1);
+                points[point].derivative.x += node.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
+                points[point].derivative.y += node.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
             }
         }
     }

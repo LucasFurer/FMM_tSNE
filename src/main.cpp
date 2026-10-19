@@ -87,7 +87,7 @@ int main()
     //);
 
     tsne_test.time_accuracy_test("MNIST_digits", // data_set
-                                 1000,           // data_size
+                                 10000,          // data_size
                                  30.0f,          // perplexity
                                  1000,           // iteration_amount
                                  10,             // repeat this many times

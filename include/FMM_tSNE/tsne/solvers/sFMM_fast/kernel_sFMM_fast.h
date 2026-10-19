@@ -1,10 +1,5 @@
-#include <FMM_tSNE/timer/timer.h>
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
-#include <FMM_tSNE/tsne/solvers/sFMM/node_sFMM.h>
 #include <FMM_tSNE/tsne/solvers/sFMM_fast/node_sFMM_fast.h>
-#include <FMM_tSNE/tsne/solvers/solver.h>
-#include <Fastor/Fastor.h>
-#include <boost/sort/sort.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/string_cast.hpp>
