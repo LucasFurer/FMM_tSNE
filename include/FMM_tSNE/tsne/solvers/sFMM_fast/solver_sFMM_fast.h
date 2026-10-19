@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <boost/sort/sort.hpp>
 #include <cstdint>
-#include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -22,7 +21,8 @@ template <typename T>
 class SolverSFMMFast : public NBodySolver<T>
 {
   public:
-    std::vector<NodeSFMMFast> nodes; // leaf_nodes
+    std::vector<NodeSFMMFast> nodes;
+    std::vector<unsigned char> depths; // depth of the nodes parallel to 'nodes'
 
     SolverSFMMFast() = default;
 
@@ -37,8 +37,6 @@ class SolverSFMMFast : public NBodySolver<T>
         traverse_SYM_NN(total, points, nodes[0], nodes[0], this->theta * this->theta);
 
         double one_over_M0 = 1.0 / nodes[0].M0;
-        nodes[0].C2 *= one_over_M0;
-        nodes[0].C3 *= one_over_M0;
         nodes[0].C2xx *= one_over_M0;
         nodes[0].C2xy *= one_over_M0;
         nodes[0].C2yy *= one_over_M0;
@@ -77,8 +75,11 @@ class SolverSFMMFast : public NBodySolver<T>
     void
     traverse_SYM_NN(double& total, std::vector<T>& points, NodeSFMMFast& node_A, NodeSFMMFast& node_B, double theta_sq)
     {
+        // check for node self interaction so it neededn't be checked later
+        // self interaction also doesnt require theta check since it will never pass
         if (&node_A == &node_B)
         {
+            // if node is leaf then do symmetric PP interactions
             if (node_A.child_index_amount == 0)
             {
                 const unsigned end = node_A.first_particle_index + node_A.particle_index_amount;
@@ -86,6 +87,7 @@ class SolverSFMMFast : public NBodySolver<T>
                     for (unsigned j = i + 1; j < end; ++j)
                         TSNE_sFMMfast_PP(total, points[i], points[j]);
             }
+            // if node is not leaf then do each NN interaction that is unique
             else
             {
                 const unsigned end = node_A.first_child_index + node_A.child_index_amount;
@@ -100,10 +102,12 @@ class SolverSFMMFast : public NBodySolver<T>
         glm::dvec2 diff = node_A.COM - node_B.COM;
         double length_sum = (node_A.BB_length + node_B.BB_length);
 
+        // efficient theta check
         if (glm::dot(diff, diff) * theta_sq > length_sum * length_sum)
         {
             TSNE_sFMMfast_NN(total, node_A, node_B);
         }
+        // if A is leaf then do PN interaction with B for every point in A
         else if (node_A.child_index_amount == 0)
         {
             for (int firstNodePointIndex = node_A.first_particle_index;
@@ -113,6 +117,7 @@ class SolverSFMMFast : public NBodySolver<T>
                 traverse_SYM_PN(total, points, points[firstNodePointIndex], node_B, theta_sq);
             }
         }
+        // if B is leaf then do PN interaction with A for every point in B
         else if (node_B.child_index_amount == 0)
         {
             for (int secondNodePointIndex = node_B.first_particle_index;
@@ -122,6 +127,7 @@ class SolverSFMMFast : public NBodySolver<T>
                 traverse_SYM_PN(total, points, points[secondNodePointIndex], node_A, theta_sq);
             }
         }
+        // if B and A are not leaf then make all children interact
         else
         {
             for (int firstNodeChildIndex = node_A.first_child_index;
@@ -138,32 +144,34 @@ class SolverSFMMFast : public NBodySolver<T>
         }
     }
 
-    void
-    traverse_SYM_PN(double& total, std::vector<T>& points, T& firstPoint, NodeSFMMFast& secondNode, double theta_sq)
+    void traverse_SYM_PN(double& total, std::vector<T>& points, T& point, NodeSFMMFast& node, double theta_sq)
     {
-        glm::dvec2 diff = firstPoint.position - secondNode.COM;
-        double length_sum = secondNode.BB_length;
+        glm::dvec2 diff = point.position - node.COM;
+        double length_sum = node.BB_length;
 
+        // efficient theta check
         if (glm::dot(diff, diff) * theta_sq > length_sum * length_sum)
         {
-            TSNE_sFMMfast_PN(total, firstPoint, secondNode);
+            TSNE_sFMMfast_PN(total, point, node);
         }
-        else if (secondNode.child_index_amount == 0)
+        // if node is leaf then do PP interaction with point for every point in node
+        else if (node.child_index_amount == 0)
         {
-            for (int secondNodePointIndex = secondNode.first_particle_index;
-                 secondNodePointIndex < secondNode.first_particle_index + secondNode.particle_index_amount;
+            for (int secondNodePointIndex = node.first_particle_index;
+                 secondNodePointIndex < node.first_particle_index + node.particle_index_amount;
                  secondNodePointIndex++)
             {
-                TSNE_sFMMfast_PP(total, firstPoint, points[secondNodePointIndex]);
+                TSNE_sFMMfast_PP(total, point, points[secondNodePointIndex]);
             }
         }
+        // if B is not leaf then make all children interact with point
         else
         {
-            for (int secondNodeChildIndex = secondNode.first_child_index;
-                 secondNodeChildIndex < secondNode.first_child_index + secondNode.child_index_amount;
+            for (int secondNodeChildIndex = node.first_child_index;
+                 secondNodeChildIndex < node.first_child_index + node.child_index_amount;
                  secondNodeChildIndex++)
             {
-                traverse_SYM_PN(total, points, firstPoint, nodes[secondNodeChildIndex], theta_sq);
+                traverse_SYM_PN(total, points, point, nodes[secondNodeChildIndex], theta_sq);
             }
         }
     }
@@ -174,17 +182,15 @@ class SolverSFMMFast : public NBodySolver<T>
         constexpr unsigned max_depth = 16; // 32-bit Morton code = 2 bits per level
 
         nodes.clear();
+        depths.clear();
         if (points.empty()) return;
-
-        // depth of every node, parallel to `nodes` (NodeSFMMFast doesn't store it)
-        std::vector<unsigned char> depths;
 
         NodeSFMMFast root(minPos + 0.5 * largestAxis, largestAxis, 0, static_cast<unsigned>(points.size()));
 
         nodes.push_back(root);
         depths.push_back(0);
 
-        // nodes grows while we iterate; BFS order keeps each node's children contiguous
+        // nodes grows while we iterate. BFS order keeps each node's children contiguous
         for (size_t n = 0; n < nodes.size(); ++n)
         {
             // copy what we need: push_back below may invalidate references into `nodes`
@@ -194,7 +200,7 @@ class SolverSFMMFast : public NBodySolver<T>
             const glm::dvec2 centre = nodes[n].BB_centre;
             const double length = nodes[n].BB_length;
 
-            // leaf
+            // if n is leaf then dont divide further
             if (count <= max_particles_per_leaf || depth >= max_depth)
             {
                 nodes[n].first_child_index = 0;
@@ -202,8 +208,7 @@ class SolverSFMMFast : public NBodySolver<T>
                 continue;
             }
 
-            // The children of this node differ in the 2 bits right after the first
-            // 2*depth bits (the node's prefix).
+            // children of n differ in the 2 bits right after the first 2*depth bits (the node's prefix).
             const unsigned shift = 32u - 2u * (depth + 1u);
 
             // uint64_t avoids UB for shift + 2 == 32 at the root
@@ -253,7 +258,8 @@ class SolverSFMMFast : public NBodySolver<T>
 
     void compute_mass_distribution(const std::vector<T>& points)
     {
-        for (size_t n = nodes.size(); n-- > 0;) // hmmm weird loop why no --n at the end
+        // weird loop to avoid size_t underflow
+        for (size_t n = nodes.size(); n-- > 0;)
         {
             NodeSFMMFast& node = nodes[n];
 
@@ -268,17 +274,6 @@ class SolverSFMMFast : public NBodySolver<T>
                 node.COM = sum / node.M0;
 
                 // calculate M2
-                // for (unsigned i = 0; i < node.particle_index_amount; ++i)
-                // {
-                //     glm::dvec2 relativeCoord = points[node.first_particle_index + i].position - nodes[n].COM;
-
-                //     Fastor::Tensor<double, 2, 2> outer_product;
-                //     outer_product(0, 0) = relativeCoord.x * relativeCoord.x;
-                //     outer_product(0, 1) = relativeCoord.x * relativeCoord.y;
-                //     outer_product(1, 0) = relativeCoord.y * relativeCoord.x;
-                //     outer_product(1, 1) = relativeCoord.y * relativeCoord.y;
-                //     nodes[n].M2 += outer_product;
-                // }
                 for (unsigned i = 0; i < node.particle_index_amount; ++i)
                 {
                     glm::dvec2 relativeCoord = points[node.first_particle_index + i].position - nodes[n].COM;
@@ -287,8 +282,6 @@ class SolverSFMMFast : public NBodySolver<T>
                     nodes[n].M2xy += relativeCoord.x * relativeCoord.y;
                     nodes[n].M2yy += relativeCoord.y * relativeCoord.y;
                 }
-                nodes[n].M2 =
-                    Fastor::Tensor<double, 2, 2>{{nodes[n].M2xx, nodes[n].M2xy}, {nodes[n].M2xy, nodes[n].M2yy}};
             }
             else if (node.child_index_amount == 1)
             {
@@ -309,33 +302,19 @@ class SolverSFMMFast : public NBodySolver<T>
                 node.COM = weighted / mass;
 
                 // calculate M2
-                // for (unsigned c = 0; c < node.child_index_amount; ++c)
-                // {
-                //     glm::dvec2 relativeCoord = nodes[node.first_child_index + c].COM - nodes[n].COM;
-
-                //     Fastor::Tensor<double, 2, 2> outer_product;
-                //     outer_product(0, 0) = relativeCoord.x * relativeCoord.x;
-                //     outer_product(0, 1) = relativeCoord.x * relativeCoord.y;
-                //     outer_product(1, 0) = relativeCoord.y * relativeCoord.x;
-                //     outer_product(1, 1) = relativeCoord.y * relativeCoord.y;
-                //     nodes[n].M2 += outer_product;
-
-                //     nodes[n].M2 += nodes[c].M2;
-                // }
                 for (unsigned c = 0; c < node.child_index_amount; ++c)
                 {
                     glm::dvec2 relativeCoord = nodes[node.first_child_index + c].COM - nodes[n].COM;
 
-                    nodes[n].M2xx += relativeCoord.x * relativeCoord.x;
-                    nodes[n].M2xy += relativeCoord.x * relativeCoord.y;
-                    nodes[n].M2yy += relativeCoord.y * relativeCoord.y;
+                    // hmmm im not sure about nodes[node.first_child_index + c].M0 CHECK the algorithm again
+                    nodes[n].M2xx += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.x;
+                    nodes[n].M2xy += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.y;
+                    nodes[n].M2yy += nodes[node.first_child_index + c].M0 * relativeCoord.y * relativeCoord.y;
 
-                    nodes[n].M2xx += nodes[c].M2xx;
-                    nodes[n].M2xy += nodes[c].M2xy;
-                    nodes[n].M2yy += nodes[c].M2yy;
+                    nodes[n].M2xx += nodes[node.first_child_index + c].M2xx;
+                    nodes[n].M2xy += nodes[node.first_child_index + c].M2xy;
+                    nodes[n].M2yy += nodes[node.first_child_index + c].M2yy;
                 }
-                nodes[n].M2 =
-                    Fastor::Tensor<double, 2, 2>{{nodes[n].M2xx, nodes[n].M2xy}, {nodes[n].M2xy, nodes[n].M2yy}};
             }
         }
     }
@@ -357,8 +336,6 @@ class SolverSFMMFast : public NBodySolver<T>
             for (int child = node.first_child_index; child < node.first_child_index + node.child_index_amount; child++)
             {
                 double one_over_M0 = 1.0 / nodes[child].M0;
-                nodes[child].C2 *= one_over_M0;
-                nodes[child].C3 *= one_over_M0;
                 nodes[child].C2xx *= one_over_M0;
                 nodes[child].C2xy *= one_over_M0;
                 nodes[child].C2yy *= one_over_M0;
@@ -366,14 +343,6 @@ class SolverSFMMFast : public NBodySolver<T>
                 nodes[child].C3xxy *= one_over_M0;
                 nodes[child].C3xyy *= one_over_M0;
                 nodes[child].C3yyy *= one_over_M0;
-
-                node.C2xx = node.C2(0, 0);
-                node.C2xy = node.C2(0, 1);
-                node.C2yy = node.C2(1, 1);
-                node.C3xxx = node.C3(0, 0, 0);
-                node.C3xxy = node.C3(0, 0, 1);
-                node.C3xyy = node.C3(0, 1, 1);
-                node.C3yyy = node.C3(1, 1, 1);
 
                 glm::dvec2 oldZ = nodes[child].COM;
                 glm::dvec2 newZ = node.COM;
@@ -389,80 +358,21 @@ class SolverSFMMFast : public NBodySolver<T>
                 diff1_einsum_C3(1, 0) = diff1(0) * node.C3xxy + diff1(1) * node.C3xyy;
                 diff1_einsum_C3(1, 1) = diff1(0) * node.C3xyy + diff1(1) * node.C3yyy;
 
-                // Fastor::Tensor<double, 2> diff1_einsum_C2{};
-                // diff1_einsum_C2(0) = diff1(0) * node.C2(0, 0) + diff1(1) * node.C2(1, 0);
-                // diff1_einsum_C2(1) = diff1(0) * node.C2(0, 1) + diff1(1) * node.C2(1, 1);
-
-                // Fastor::Tensor<double, 2, 2> diff1_einsum_C3{};
-                // diff1_einsum_C3(0, 0) = diff1(0) * node.C3(0, 0, 0) + diff1(1) * node.C3(1, 0, 0);
-                // diff1_einsum_C3(0, 1) = diff1(0) * node.C3(0, 0, 1) + diff1(1) * node.C3(1, 0, 1);
-                // diff1_einsum_C3(1, 0) = diff1(0) * node.C3(0, 1, 0) + diff1(1) * node.C3(1, 1, 0);
-                // diff1_einsum_C3(1, 1) = diff1(0) * node.C3(0, 1, 1) + diff1(1) * node.C3(1, 1, 1);
-
                 Fastor::Tensor<double, 2> diff1_einsumx2_C3{};
                 diff1_einsumx2_C3(0) = diff1(0) * diff1_einsum_C3(0, 0) + diff1(1) * diff1_einsum_C3(1, 0);
                 diff1_einsumx2_C3(1) = diff1(0) * diff1_einsum_C3(0, 1) + diff1(1) * diff1_einsum_C3(1, 1);
 
-                Fastor::Tensor<double, 2> newC1 = node.C1 + diff1_einsum_C2 + 0.5 * diff1_einsumx2_C3;
-
-                Fastor::Tensor<double, 2, 2> newC2 = node.C2 + diff1_einsum_C3;
-
-                Fastor::Tensor<double, 2, 2, 2> newC3 = node.C3;
-
-                nodes[child].C1 += newC1;
-                nodes[child].C2 += newC2;
-                nodes[child].C3 += newC3;
+                nodes[child].C1x += node.C1x + diff1_einsum_C2(0) + 0.5 * diff1_einsumx2_C3(0);
+                nodes[child].C1y += node.C1y + diff1_einsum_C2(1) + 0.5 * diff1_einsumx2_C3(1);
+                nodes[child].C2xx += node.C2xx + diff1_einsum_C3(0, 0);
+                nodes[child].C2xy += node.C2xy + diff1_einsum_C3(0, 1);
+                nodes[child].C2yy += node.C2yy + diff1_einsum_C3(1, 1);
+                nodes[child].C3xxx += node.C3xxx;
+                nodes[child].C3xxy += node.C3xxy;
+                nodes[child].C3xyy += node.C3xyy;
+                nodes[child].C3yyy += node.C3yyy;
 
                 applyForces(points, nodes[child]);
-
-                // double one_over_M0 = 1.0 / nodes[child].M0;
-                // nodes[child].C2 *= one_over_M0;
-                // nodes[child].C3 *= one_over_M0;
-                // nodes[child].C2xx *= one_over_M0;
-                // nodes[child].C2xy *= one_over_M0;
-                // nodes[child].C2yy *= one_over_M0;
-                // nodes[child].C3xxx *= one_over_M0;
-                // nodes[child].C3xxy *= one_over_M0;
-                // nodes[child].C3xyy *= one_over_M0;
-                // nodes[child].C3yyy *= one_over_M0;
-
-                // nodes[child].C2xx = nodes[child].C2(0, 0);
-                // nodes[child].C2xy = nodes[child].C2(0, 1);
-                // nodes[child].C2yy = nodes[child].C2(1, 1);
-                // nodes[child].C3xxx = nodes[child].C3(0, 0, 0);
-                // nodes[child].C3xxy = nodes[child].C3(0, 0, 1);
-                // nodes[child].C3xyy = nodes[child].C3(0, 1, 1);
-                // nodes[child].C3yyy = nodes[child].C3(1, 1, 1);
-
-                // NodeSFMMFast& child_node = nodes[child];
-                // const glm::dvec2 diff = child_node.COM - node.COM;
-
-                // const double Axx = node.C3xxx * diff.x + node.C3xxy * diff.y;
-                // const double Axy = node.C3xxy * diff.x + node.C3xyy * diff.y;
-                // const double Ayy = node.C3xyy * diff.x + node.C3yyy * diff.y;
-
-                // child_node.C1x +=
-                //     node.C1x + node.C2xx * diff.x + node.C2xy * diff.y + 0.5 * (Axx * diff.x + Axy * diff.y);
-                // child_node.C1y +=
-                //     node.C1y + node.C2xy * diff.x + node.C2yy * diff.y + 0.5 * (Axy * diff.x + Ayy * diff.y);
-
-                // child_node.C2xx += node.C2xx + Axx;
-                // child_node.C2xy += node.C2xy + Axy;
-                // child_node.C2yy += node.C2yy + Ayy;
-
-                // child_node.C3xxx += node.C3xxx;
-                // child_node.C3xxy += node.C3xxy;
-                // child_node.C3xyy += node.C3xyy;
-                // child_node.C3yyy += node.C3yyy;
-
-                // child_node.C1 = Fastor::Tensor<double, 2>{child_node.C1x, child_node.C1y};
-                // child_node.C2 = Fastor::Tensor<double, 2, 2>{{child_node.C2xx, child_node.C2xy},
-                //                                              {child_node.C2xy, child_node.C2yy}};
-                // child_node.C3 = Fastor::Tensor<double, 2, 2, 2>{
-                //     {{child_node.C3xxx, child_node.C3xxy}, {child_node.C3xxy, child_node.C3xyy}},
-                //     {{child_node.C3xxy, child_node.C3xyy}, {child_node.C3xyy, child_node.C3yyy}}};
-
-                // applyForces(points, child_node);
             }
         }
         else
@@ -470,14 +380,6 @@ class SolverSFMMFast : public NBodySolver<T>
             for (int point = node.first_particle_index; point < node.first_particle_index + node.particle_index_amount;
                  point++)
             {
-                node.C2xx = node.C2(0, 0);
-                node.C2xy = node.C2(0, 1);
-                node.C2yy = node.C2(1, 1);
-                node.C3xxx = node.C3(0, 0, 0);
-                node.C3xxy = node.C3(0, 0, 1);
-                node.C3xyy = node.C3(0, 1, 1);
-                node.C3yyy = node.C3(1, 1, 1);
-
                 glm::dvec2 x = points[point].position;
                 glm::dvec2 Z0 = node.COM;
                 Fastor::Tensor<double, 2> diff1 = {x.x - Z0.x, x.y - Z0.y};
@@ -496,25 +398,8 @@ class SolverSFMMFast : public NBodySolver<T>
                 diff1_einsumx2_C3(0) = diff1(0) * diff1_einsum_C3(0, 0) + diff1(1) * diff1_einsum_C3(1, 0);
                 diff1_einsumx2_C3(1) = diff1(0) * diff1_einsum_C3(0, 1) + diff1(1) * diff1_einsum_C3(1, 1);
 
-                // Fastor::Tensor<double, 2> newC1 =
-                //     node.C1 + Fastor::einsum<Fastor::Index<0>, Fastor::Index<0, 1>>(diff1, node.C2) +
-                //     0.5 * Fastor::einsum<Fastor::Index<0>, Fastor::Index<0, 1>>(
-                //               diff1, Fastor::einsum<Fastor::Index<0>, Fastor::Index<0, 1, 2>>(diff1, node.C3));
-                Fastor::Tensor<double, 2> newC1 = node.C1 + diff1_einsum_C2 + 0.5 * diff1_einsumx2_C3;
-
-                points[point].derivative += glm::dvec2(newC1(0), newC1(1));
-
-                // -------------------
-
-                // const glm::dvec2 diff = points[point].position - node.COM;
-                // const double dxx = diff.x * diff.x;
-                // const double dxy = diff.x * diff.y;
-                // const double dyy = diff.y * diff.y;
-
-                // points[point].derivative.x += node.C1x + node.C2xx * diff.x + node.C2xy * diff.y +
-                //                               0.5 * (node.C3xxx * dxx + 2.0 * node.C3xxy * dxy + node.C3xyy * dyy);
-                // points[point].derivative.y += node.C1y + node.C2xy * diff.x + node.C2yy * diff.y +
-                //                               0.5 * (node.C3xxy * dxx + 2.0 * node.C3xyy * dxy + node.C3yyy * dyy);
+                points[point].derivative.x += node.C1x + diff1_einsum_C2(0) + 0.5 * diff1_einsumx2_C3(0);
+                points[point].derivative.y += node.C1y + diff1_einsum_C2(1) + 0.5 * diff1_einsumx2_C3(1);
             }
         }
     }

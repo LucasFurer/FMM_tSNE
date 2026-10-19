@@ -10,7 +10,6 @@ struct NodeSFMMFast
 
     // can become particle_index_amount
     double M0{};
-    Fastor::Tensor<double, 2, 2> M2{};
     double M2xx{};
     double M2xy{};
     double M2yy{};
@@ -23,14 +22,11 @@ struct NodeSFMMFast
     unsigned int first_child_index;   // first_child_index + child_index_amount is index of last child
     unsigned char child_index_amount; // amount of children (max is 4)
 
-    Fastor::Tensor<double, 2> C1{};
     double C1x{};
     double C1y{};
-    Fastor::Tensor<double, 2, 2> C2{};
     double C2xx{};
     double C2xy{};
     double C2yy{};
-    Fastor::Tensor<double, 2, 2, 2> C3{};
     double C3xxx{};
     double C3xxy{};
     double C3xyy{};
