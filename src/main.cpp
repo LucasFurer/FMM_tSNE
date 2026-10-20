@@ -86,15 +86,15 @@ int main()
     //     "FMM_SYM_MORTON" // method: "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
     //);
 
-    tsne_test.time_accuracy_test("MNIST_digits", // data_set
-                                 10000,          // data_size
-                                 30.0f,          // perplexity
-                                 1000,           // iteration_amount
-                                 10,             // repeat this many times
-                                 0.5f,           // theta
-                                 0.5f,           // cell_size
-                                 216308u         // seed
-    );
+    // tsne_test.time_accuracy_test("MNIST_digits", // data_set
+    //                              10000,          // data_size
+    //                              30.0f,          // perplexity
+    //                              1000,           // iteration_amount
+    //                              10,             // repeat this many times
+    //                              0.5f,           // theta
+    //                              0.5f,           // cell_size
+    //                              216308u         // seed
+    // );
 
     std::cout << "done with tests\n";
     // -------------------------------

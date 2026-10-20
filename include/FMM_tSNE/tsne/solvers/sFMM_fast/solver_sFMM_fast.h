@@ -262,6 +262,7 @@ class SolverSFMMFast : public NBodySolver<T>
         {
             NodeSFMMFast& node = nodes[n];
 
+            // leaf node
             if (node.child_index_amount == 0)
             {
                 // calculate M0 and COM
@@ -282,10 +283,15 @@ class SolverSFMMFast : public NBodySolver<T>
                     nodes[n].M2yy += relativeCoord.y * relativeCoord.y;
                 }
             }
+            // non leaf with only 1 child therefore we can prune
             else if (node.child_index_amount == 1)
             {
+                // makes node BB visualization correct but costs some performance
+                // BB_centres[n] = BB_centres[node.first_child_index];
+
                 node = nodes[node.first_child_index];
             }
+            // non leaf, calculate mass distribution from children
             else
             {
                 // calculate M0 and COM
@@ -424,46 +430,42 @@ class SolverSFMMFast : public NBodySolver<T>
         return x;
     }
 
-    void
-    getNodesBufferData(std::vector<VertexPos2Col3>& nodesBufferData, const NodeSFMMFast& node, int level, int showLevel)
+    void getNodesBufferData(std::vector<VertexPos2Col3>& nodesBufferData, const NodeSFMMFast&, int, int showLevel)
     {
-        /*
-        if ((level == showLevel || showLevel == -1) && node.particle_index_amount != 0)
+        for (size_t i{}; i < nodes.size(); ++i)
         {
-            const int colorsSize = 7;
-            std::array<glm::vec3, colorsSize> colors{glm::vec3(1.0f, 1.0f, 1.0f),
-                                                     glm::vec3(1.0f, 0.0f, 0.0f),
-                                                     glm::vec3(0.0f, 1.0f, 0.0f),
-                                                     glm::vec3(0.0f, 0.0f, 1.0f),
-                                                     glm::vec3(1.0f, 1.0f, 0.0f),
-                                                     glm::vec3(0.0f, 1.0f, 1.0f),
-                                                     glm::vec3(1.0f, 0.0f, 1.0f)};
+            const auto& node = nodes[i];
+            const unsigned level = depths[i];
+            const glm::dvec2 BB_centre = BB_centres[i];
 
-            glm::vec3 color = colors[std::min(showLevel + 1, colorsSize - 1)];
-
-            glm::vec2 lowestCorner = node.BB_centre - 0.5f * node.BB_length;
-            glm::vec2 highestCorner = node.BB_centre + 0.5f * node.BB_length;
-
-            nodesBufferData.push_back(VertexPos2Col3(glm::vec2(lowestCorner.x, lowestCorner.y), color));
-            nodesBufferData.push_back(VertexPos2Col3(glm::vec2(highestCorner.x, lowestCorner.y), color));
-
-            nodesBufferData.push_back(VertexPos2Col3(glm::vec2(lowestCorner.x, lowestCorner.y), color));
-            nodesBufferData.push_back(VertexPos2Col3(glm::vec2(lowestCorner.x, highestCorner.y), color));
-
-            nodesBufferData.push_back(VertexPos2Col3(glm::vec2(lowestCorner.x, highestCorner.y), color));
-            nodesBufferData.push_back(VertexPos2Col3(glm::vec2(highestCorner.x, highestCorner.y), color));
-
-            nodesBufferData.push_back(VertexPos2Col3(glm::vec2(highestCorner.x, lowestCorner.y), color));
-            nodesBufferData.push_back(VertexPos2Col3(glm::vec2(highestCorner.x, highestCorner.y), color));
-        }
-
-        if (node.child_index_amount != 0u)
-        {
-            for (int i = node.first_child_index; i < node.first_child_index + node.child_index_amount; i++)
+            if (level == showLevel || showLevel == -1)
             {
-                getNodesBufferData(nodesBufferData, nodes[i], level + 1, showLevel);
+                const int colorsSize = 7;
+                std::array<glm::vec3, colorsSize> colors{glm::vec3(1.0f, 1.0f, 1.0f),
+                                                         glm::vec3(1.0f, 0.0f, 0.0f),
+                                                         glm::vec3(0.0f, 1.0f, 0.0f),
+                                                         glm::vec3(0.0f, 0.0f, 1.0f),
+                                                         glm::vec3(1.0f, 1.0f, 0.0f),
+                                                         glm::vec3(0.0f, 1.0f, 1.0f),
+                                                         glm::vec3(1.0f, 0.0f, 1.0f)};
+
+                glm::vec3 color = colors[std::min(showLevel + 1, colorsSize - 1)];
+
+                glm::vec2 lowestCorner = BB_centre - 0.5f * node.BB_length;
+                glm::vec2 highestCorner = BB_centre + 0.5f * node.BB_length;
+
+                nodesBufferData.push_back(VertexPos2Col3(glm::vec2(lowestCorner.x, lowestCorner.y), color));
+                nodesBufferData.push_back(VertexPos2Col3(glm::vec2(highestCorner.x, lowestCorner.y), color));
+
+                nodesBufferData.push_back(VertexPos2Col3(glm::vec2(lowestCorner.x, lowestCorner.y), color));
+                nodesBufferData.push_back(VertexPos2Col3(glm::vec2(lowestCorner.x, highestCorner.y), color));
+
+                nodesBufferData.push_back(VertexPos2Col3(glm::vec2(lowestCorner.x, highestCorner.y), color));
+                nodesBufferData.push_back(VertexPos2Col3(glm::vec2(highestCorner.x, highestCorner.y), color));
+
+                nodesBufferData.push_back(VertexPos2Col3(glm::vec2(highestCorner.x, lowestCorner.y), color));
+                nodesBufferData.push_back(VertexPos2Col3(glm::vec2(highestCorner.x, highestCorner.y), color));
             }
         }
-        */
     }
 };

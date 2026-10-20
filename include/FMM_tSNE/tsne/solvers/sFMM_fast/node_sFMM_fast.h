@@ -7,7 +7,6 @@ struct NodeSFMMFast
 {
     glm::dvec2 COM{};
 
-    // can become particle_index_amount
     double M0{};
     double M2xx{};
     double M2xy{};
@@ -31,14 +30,8 @@ struct NodeSFMMFast
     double C3xyy{};
     double C3yyy{};
 
-    // glm::dvec2 BB_centre;
-
-    NodeSFMMFast(/* glm::dvec2 in_BB_centre, */
-                 double in_BB_length,
-                 unsigned int in_first_particle_index,
-                 unsigned int in_particle_index_amount)
-        : /* BB_centre{in_BB_centre}, */
-          BB_length{in_BB_length},
+    NodeSFMMFast(double in_BB_length, unsigned int in_first_particle_index, unsigned int in_particle_index_amount)
+        : BB_length{in_BB_length},
           first_particle_index{in_first_particle_index},
           particle_index_amount{in_particle_index_amount}
     {
