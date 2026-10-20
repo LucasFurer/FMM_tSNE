@@ -270,7 +270,7 @@ class SolverSFMMFast : public NBodySolver<T>
                     sum += points[node.first_particle_index + i].position;
 
                 node.M0 = static_cast<double>(node.particle_index_amount); // unit mass per point
-                node.COM = sum / node.M0;
+                node.COM = sum / static_cast<double>(node.M0);
 
                 // calculate M2
                 for (unsigned i = 0; i < node.particle_index_amount; ++i)
@@ -289,16 +289,14 @@ class SolverSFMMFast : public NBodySolver<T>
             else
             {
                 // calculate M0 and COM
-                double mass = 0.0;
-                glm::dvec2 weighted{0.0};
+                glm::dvec2 sum{0.0};
                 for (unsigned c = 0; c < node.child_index_amount; ++c)
                 {
-                    const NodeSFMMFast& child = nodes[node.first_child_index + c];
-                    mass += child.M0;
-                    weighted += child.M0 * child.COM;
+                    sum += static_cast<double>(nodes[node.first_child_index + c].M0) *
+                           nodes[node.first_child_index + c].COM;
                 }
-                node.M0 = mass;
-                node.COM = weighted / mass;
+                node.M0 = node.particle_index_amount;
+                node.COM = sum / static_cast<double>(node.M0);
 
                 // calculate M2
                 for (unsigned c = 0; c < node.child_index_amount; ++c)
@@ -307,9 +305,10 @@ class SolverSFMMFast : public NBodySolver<T>
 
                     // hmmm im not sure about nodes[node.first_child_index + c].M0 CHECK the algorithm
                     // again!!!!!!!!!!!!!!!!!!!!!!!
-                    nodes[n].M2xx += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.x;
-                    nodes[n].M2xy += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.y;
-                    nodes[n].M2yy += nodes[node.first_child_index + c].M0 * relativeCoord.y * relativeCoord.y;
+                    const auto child_M0 = static_cast<double>(nodes[node.first_child_index + c].M0);
+                    nodes[n].M2xx += child_M0 * relativeCoord.x * relativeCoord.x;
+                    nodes[n].M2xy += child_M0 * relativeCoord.x * relativeCoord.y;
+                    nodes[n].M2yy += child_M0 * relativeCoord.y * relativeCoord.y;
 
                     nodes[n].M2xx += nodes[node.first_child_index + c].M2xx;
                     nodes[n].M2xy += nodes[node.first_child_index + c].M2xy;

@@ -6,6 +6,10 @@
 
 inline void TSNE_sFMMfast_NN(double& total, NodeSFMMFast& sinkNode, NodeSFMMFast& sourceNode)
 {
+    // cast once, use everywhere
+    const auto sinkNode_M0 = static_cast<double>(sinkNode.M0);
+    const auto sourceNode_M0 = static_cast<double>(sourceNode.M0);
+
     glm::dvec2 R = sinkNode.COM - sourceNode.COM;
     double sq_r = R.x * R.x + R.y * R.y;
     double rS = 1.0 + sq_r;
@@ -19,8 +23,8 @@ inline void TSNE_sFMMfast_NN(double& total, NodeSFMMFast& sinkNode, NodeSFMMFast
     double D2 = -4.0 * inv_rS3;
     double D3 = 24.0 * inv_rS4;
 
-    double MA0 = sinkNode.M0;
-    double MB0 = sourceNode.M0;
+    double MA0 = sinkNode_M0;
+    double MB0 = sourceNode_M0;
     double MB2_xx = sourceNode.M2xx;
     double MB2_xy = sourceNode.M2xy;
     double MB2_yy = sourceNode.M2yy;
@@ -60,8 +64,8 @@ inline void TSNE_sFMMfast_NN(double& total, NodeSFMMFast& sinkNode, NodeSFMMFast
 
     R = -R;
 
-    MA0 = sourceNode.M0;
-    MB0 = sinkNode.M0;
+    MA0 = sourceNode_M0;
+    MB0 = sinkNode_M0;
     MB2_xx = sinkNode.M2xx;
     MB2_xy = sinkNode.M2xy;
     MB2_yy = sinkNode.M2yy;
@@ -89,11 +93,14 @@ inline void TSNE_sFMMfast_NN(double& total, NodeSFMMFast& sinkNode, NodeSFMMFast
     sourceNode.C3yyy -= C3yyy;
 
     // add totals for both interactions
-    total += 2.0 * (sinkNode.M0 * sourceNode.M0) / rS;
+    total += 2.0 * (sinkNode_M0 * sourceNode_M0) / rS;
 }
 
 inline void TSNE_sFMMfast_PN(double& total, TsnePoint2D& sinkPoint, NodeSFMMFast& sourceNode)
 {
+    // cast once, use everywhere
+    const auto sourceNode_M0 = static_cast<double>(sourceNode.M0);
+
     glm::dvec2 R = sinkPoint.position - sourceNode.COM;
     double sq_r = R.x * R.x + R.y * R.y;
     double rS = 1.0 + sq_r;
@@ -108,7 +115,7 @@ inline void TSNE_sFMMfast_PN(double& total, TsnePoint2D& sinkPoint, NodeSFMMFast
     double D3 = 24.0 * inv_rS4;
 
     double MA0 = 1.0;
-    double MB0 = sourceNode.M0;
+    double MB0 = sourceNode_M0;
     double MB2_xx = sourceNode.M2xx;
     double MB2_xy = sourceNode.M2xy;
     double MB2_yy = sourceNode.M2yy;
@@ -131,7 +138,7 @@ inline void TSNE_sFMMfast_PN(double& total, TsnePoint2D& sinkPoint, NodeSFMMFast
 
     R = -R;
 
-    MA0 = sourceNode.M0;
+    MA0 = sourceNode_M0;
     MB0 = 1.0;
 
     sourceNode.C1x += (R.x * D1);
@@ -156,7 +163,7 @@ inline void TSNE_sFMMfast_PN(double& total, TsnePoint2D& sinkPoint, NodeSFMMFast
     sourceNode.C3yyy += C3yyy;
 
     // add totals for both interactions
-    total += 2.0 * sourceNode.M0 / rS;
+    total += 2.0 * sourceNode_M0 / rS;
 }
 
 inline void TSNE_sFMMfast_PP(double& total, TsnePoint2D& sinkPoint, TsnePoint2D& sourcePoint)
