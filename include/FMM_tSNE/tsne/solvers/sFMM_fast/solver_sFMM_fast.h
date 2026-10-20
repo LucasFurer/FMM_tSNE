@@ -313,9 +313,12 @@ class SolverSFMMFast : public NBodySolver<T>
 
                     // hmmm im not sure about nodes[node.first_child_index + c].M0 CHECK the algorithm
                     // again!!!!!!!!!!!!!!!!!!!!!!!
-                    nodes[n].M2xx += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.x;
-                    nodes[n].M2xy += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.y;
-                    nodes[n].M2yy += nodes[node.first_child_index + c].M0 * relativeCoord.y * relativeCoord.y;
+                    // nodes[n].M2xx += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.x;
+                    // nodes[n].M2xy += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.y;
+                    // nodes[n].M2yy += nodes[node.first_child_index + c].M0 * relativeCoord.y * relativeCoord.y;
+                    nodes[n].M2xx += relativeCoord.x * relativeCoord.x;
+                    nodes[n].M2xy += relativeCoord.x * relativeCoord.y;
+                    nodes[n].M2yy += relativeCoord.y * relativeCoord.y;
 
                     nodes[n].M2xx += nodes[node.first_child_index + c].M2xx;
                     nodes[n].M2xy += nodes[node.first_child_index + c].M2xy;
