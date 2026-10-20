@@ -20,7 +20,8 @@ class SolverSFMMFast : public NBodySolver<T>
 {
   public:
     std::vector<NodeSFMMFast> nodes;
-    std::vector<unsigned char> depths; // depth of the nodes parallel to 'nodes'
+    std::vector<unsigned char> depths;  // depth of the nodes parallel to 'nodes'
+    std::vector<glm::dvec2> BB_centres; // centres of the nodes parrallel to 'nodes'
 
     SolverSFMMFast() = default;
 
@@ -181,12 +182,14 @@ class SolverSFMMFast : public NBodySolver<T>
 
         nodes.clear();
         depths.clear();
+        BB_centres.clear();
         if (points.empty()) return;
 
-        NodeSFMMFast root(minPos + 0.5 * largestAxis, largestAxis, 0, static_cast<unsigned>(points.size()));
+        NodeSFMMFast root(largestAxis, 0, static_cast<unsigned>(points.size()));
 
         nodes.push_back(root);
         depths.push_back(0);
+        BB_centres.push_back(minPos + 0.5 * largestAxis);
 
         // nodes grows while we iterate. BFS order keeps each node's children contiguous
         for (size_t n = 0; n < nodes.size(); ++n)
@@ -195,7 +198,7 @@ class SolverSFMMFast : public NBodySolver<T>
             const unsigned first = nodes[n].first_particle_index;
             const unsigned count = nodes[n].particle_index_amount;
             const unsigned depth = depths[n];
-            const glm::dvec2 centre = nodes[n].BB_centre;
+            const glm::dvec2 centre = BB_centres[n]; // nodes[n].BB_centre;
             const double length = nodes[n].BB_length;
 
             // if n is leaf then dont divide further
@@ -241,13 +244,11 @@ class SolverSFMMFast : public NBodySolver<T>
             {
                 if (bounds[q] == bounds[q + 1]) continue;
 
-                NodeSFMMFast child(centre + glm::dvec2((q & 1u) ? offset : -offset, (q & 2u) ? offset : -offset),
-                                   child_length,
-                                   bounds[q],
-                                   bounds[q + 1] - bounds[q]);
+                NodeSFMMFast child(child_length, bounds[q], bounds[q + 1] - bounds[q]);
 
                 nodes.push_back(child);
                 depths.push_back(static_cast<unsigned char>(depth + 1));
+                BB_centres.push_back(centre + glm::dvec2((q & 1u) ? offset : -offset, (q & 2u) ? offset : -offset));
                 ++child_count;
             }
             nodes[n].child_index_amount = child_count;
@@ -426,6 +427,7 @@ class SolverSFMMFast : public NBodySolver<T>
     void
     getNodesBufferData(std::vector<VertexPos2Col3>& nodesBufferData, const NodeSFMMFast& node, int level, int showLevel)
     {
+        /*
         if ((level == showLevel || showLevel == -1) && node.particle_index_amount != 0)
         {
             const int colorsSize = 7;
@@ -462,5 +464,6 @@ class SolverSFMMFast : public NBodySolver<T>
                 getNodesBufferData(nodesBufferData, nodes[i], level + 1, showLevel);
             }
         }
+        */
     }
 };
