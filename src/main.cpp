@@ -37,18 +37,18 @@ int main()
     //                          216308u                                                   // seed
     // );
 
-    tsne_test.calculationtimeErrorTSNE("MNIST_digits",                                           // data_set
-                                       10000,                                                    // data_size
-                                       30.0f,                                                    // perplexity
-                                       10,                                                       // iteration_amount
-                                       std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // thetas
-                                       // std::vector<double>{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,
-                                       // 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5}, // thetas
-                                       std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // cell_sizes
-                                       // std::vector<double>{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,
-                                       // 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5}, // cell_sizes
-                                       216308u // seed
-    );
+    // tsne_test.calculationtimeErrorTSNE("MNIST_digits",                                           // data_set
+    //                                    70000,                                                    // data_size
+    //                                    30.0f,                                                    // perplexity
+    //                                    10,                                                       // iteration_amount
+    //                                    std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // thetas
+    //                                    // std::vector<double>{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,
+    //                                    // 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5}, // thetas
+    //                                    std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // cell_sizes
+    //                                    // std::vector<double>{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,
+    //                                    // 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5}, // cell_sizes
+    //                                    216308u // seed
+    // );
 
     // comparing FMM to BH with high theta and looking at the cost
     // tsne_test.costTimestepTSNE("MNIST_digits", // data_set
@@ -62,17 +62,16 @@ int main()
     //                            "BH" // method: "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
     // );
 
-    // tsne_test.calculationtimeCostTSNE // looking at the final cost
-    //(
-    //     "MNIST_digits", // data_set
-    //     70000, // data_size
-    //     30.0f, // perplexity
-    //     1001, // iteration_amount
-    //     std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // thetas
-    //     std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // cell_sizes
-    //     216308u, // seed: 4523u
-    //     "BH" // method: "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
-    //);
+    // tsne_test.calculationtimeCostTSNE                              // looking at the final cost
+    //     ("mice_brain_cells",                                       // data_set
+    //      1000000,                                                  // data_size
+    //      30.0f,                                                    // perplexity
+    //      1001,                                                     // iteration_amount
+    //      std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // thetas
+    //      std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // cell_sizes
+    //      216308u,                                                  // seed: 4523u
+    //      // method: "FMMfast_SYM_MORTON", "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
+    //      "PM");
 
     // tsne_test.calculationtimeError_MAXpoints_TSNE
     //(
@@ -96,6 +95,15 @@ int main()
     //                              216308u         // seed
     // );
 
+    // tsne_test.errorTimestepTSNE_Zaccum("MNIST_digits", // data_set
+    //                                    10000,          // data_size
+    //                                    30.0f,          // perplexity
+    //                                    1000,           // iteration_amount
+    //                                    1.0f,           // theta
+    //                                    1.0f,           // cell_size
+    //                                    216308u         // seed
+    // );
+
     std::cout << "done with tests\n";
     // -------------------------------
 
@@ -106,7 +114,7 @@ int main()
                                 (std::filesystem::current_path().string() + "/shaders/shader_tsne.fs").c_str());
 
     TSNE_buffers tsne(1.0,            // min_theta
-                      2.0,            // max_theta
+                      1.0,            // max_theta
                       1.0,            // cell_size
                       "MNIST_digits", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
                       70000,          // data_size

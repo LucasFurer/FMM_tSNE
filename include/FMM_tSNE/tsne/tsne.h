@@ -1,12 +1,5 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
-#include <cmath>
-#include <cstddef>
-#include <filesystem>
-#include <glm/glm.hpp>
-// #include <glm/gtx/component_wise.hpp>
-// #include <glm/gtx/string_cast.hpp>
 #include <FMM_tSNE/data_loaders/MNIST_data.h>
 #include <FMM_tSNE/data_loaders/sparse_entry_COO_2D.h>
 #include <FMM_tSNE/data_loaders/sparse_entry_CSC_2D.h>
@@ -20,6 +13,11 @@
 #include <FMM_tSNE/tsne/solvers/sFMM_fast/solver_sFMM_fast.h>
 #include <FMM_tSNE/tsne/solvers/solver.h>
 #include <FMM_tSNE/tsne/solvers/solver_tree.h>
+#include <GLFW/glfw3.h>
+#include <cmath>
+#include <cstddef>
+#include <filesystem>
+#include <glm/glm.hpp>
 #include <limits>
 #include <map>
 #include <numbers>
@@ -29,28 +27,11 @@
 #include <utility>
 #include <vector>
 
-// #include "../common.h"
-// #include "../dataLoaders/loader.h"
-// #include "../ffthelper.h"
-// #include "../nbodysolvers/cpu/nBodySolverBH.h"
-// #include "../nbodysolvers/cpu/nBodySolverBHMP.h"
-// #include "../nbodysolvers/cpu/nBodySolverBHR.h"
-// #include "../nbodysolvers/cpu/nBodySolverBHRMP.h"
-// #include "../nbodysolvers/cpu/nBodySolverFMM.h"
-// #include "../nbodysolvers/cpu/nBodySolverFMM_MORTON.h"
-// #include "../nbodysolvers/cpu/nBodySolverFMM_SYM_MORTON.h"
-// #include "../nbodysolvers/cpu/nBodySolverFMMiter.h"
-// #include "../nbodysolvers/cpu/nBodySolverNaive.h"
-// #include "../nbodysolvers/cpu/nBodySolverPM.h"
-// #include "../nbodysolvers/cpu/nBodySolverTest.h"
-// #include "../openGLhelper/buffer.h"
-// #include "../particleMesh.h"
-// #include "../particles/embeddedPoint.h"
-// #include "../particles/tsnePoint2D.h"
-
 class TSNE
 {
   public:
+    double factor_ = 1.0;
+
     std::vector<TsnePoint2D> embeddedPoints;
     std::vector<TsnePoint2D> embeddedPointsPrev;
     std::vector<TsnePoint2D> embeddedPointsPrevPrev;
@@ -321,6 +302,7 @@ class TSNE
     {
         double QijTotal = 0.0;
         nBodySolvers[nBodySelect]->solveNbody(QijTotal, embeddedPoints);
+        QijTotal *= factor_;
         QijTotal = 4.0 / QijTotal;
 
         for (int i = 0; i < embeddedPoints.size(); i++)

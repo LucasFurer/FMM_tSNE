@@ -913,6 +913,95 @@ class TsneTest
         std::cout << "time: " << total_time << "\n";
     }
 
+    void errorTimestepTSNE_Zaccum(std::string dataset_type,
+                                  int data_size,
+                                  float perplexity_value,
+                                  int iteration_amount,
+                                  double theta,
+                                  double cell_size,
+                                  unsigned int seed)
+    {
+        TSNE tsne(theta, theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+
+        std::vector<TsnePoint2D> naive_solution_rep(data_size);
+        std::vector<TsnePoint2D> fast_solution_rep(data_size);
+
+        std::vector<TsnePoint2D> naive_solution(data_size);
+
+        std::vector<double> factors;
+        for (double offset{0.0}; offset < 0.02; offset += 0.004)
+        {
+            factors.push_back(1.015 + offset);
+            factors.push_back(1.015 - offset);
+        }
+        std::sort(factors.begin(), factors.end());
+        std::vector<double> errors(factors.size(), 0.0);
+
+        for (int factor{}; factor < factors.size(); ++factor)
+        {
+            tsne.resetTsne(theta, theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+
+            // find error at every time step
+            for (int t = 0; t < iteration_amount; t++)
+            {
+                tsne.factor_ = 1.0;
+                std::cout << "find error at iteration: " << t << std::endl;
+                tsne.updateMinMaxPos();
+
+                // correct solution up to machine precision
+                tsne.resetDeriv();
+                tsne.iteration_counter = t;
+                tsne.nBodySelect = "naive";
+                tsne.updateDerivative();
+                naive_solution = tsne.embeddedPoints;
+                // storePrecomputed(naive_solution, pre_computed_path_full_naive_solution / std::to_string(t));
+
+                tsne.resetDeriv();
+                tsne.iteration_counter = t;
+                tsne.nBodySelect = "naive";
+                tsne.resetDeriv();
+                tsne.updateRepulsive();
+                naive_solution_rep = tsne.embeddedPoints;
+                // storePrecomputed(naiveSolution, pre_computed_path_naive_solution / std::to_string(t));
+
+                {
+                    tsne.factor_ = factors[factor];
+                    // calculate the result of every approximation technique and find the error by comparing to naive
+                    tsne.resetDeriv();
+                    tsne.iteration_counter = t;
+                    tsne.nBodySelect = "FMMfast_SYM_MORTON";
+                    tsne.nBodySolvers["FMMfast_SYM_MORTON"]->updateTree(tsne.embeddedPoints, tsne.minPos, tsne.maxPos);
+                    // tsne.updateDerivative();
+                    tsne.resetDeriv();
+                    tsne.updateRepulsive();
+                    fast_solution_rep = tsne.embeddedPoints;
+                    // fastSolutionIndexTracker = tsne.indexTracker;
+                    errors[factor] += getNMAE(naive_solution_rep, fast_solution_rep);
+                }
+
+                tsne.factor_ = 1.0;
+                // update points with naive solution
+                tsne.resetDeriv();
+                tsne.iteration_counter = t;
+                tsne.nBodySelect = "naive";
+                tsne.embeddedPoints = naive_solution;
+                tsne.updatePoints();
+            }
+            errors[factor] /= iteration_amount;
+        }
+
+        // write results to csv files
+        std::filesystem::path projectFolder = std::filesystem::current_path() / "graphCSV" / dataset_type /
+                                              std::to_string(data_size) /
+                                              ("perp" + std::to_string(static_cast<int>(perplexity_value)));
+
+        std::filesystem::path methodPath =
+            projectFolder / (std::string("tsneErrorTimestepZaccum") + "FMMfast_SYM_MORTON" + "_point" +
+                             std::to_string(data_size) + "_perp" + std::to_string(static_cast<int>(perplexity_value)) +
+                             "_theta" + fltToStr(theta) + "_dataset" + dataset_type + ".csv");
+        writeToFile(factors, errors, methodPath);
+    }
+
   private:
     // mean relative error or maximum relative error
     double getNMAE(const std::vector<TsnePoint2D>& points_naive, const std::vector<TsnePoint2D>& points_approx)

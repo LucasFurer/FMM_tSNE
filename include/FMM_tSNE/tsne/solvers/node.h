@@ -20,6 +20,8 @@ class QuadTree
   public:
     typename Policy::Node_Summary summary;
 
+    int test;
+
     glm::dvec2 BBcentre{0.0};
     double BBlength{0.0};
 

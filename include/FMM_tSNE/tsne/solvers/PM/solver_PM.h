@@ -519,9 +519,10 @@ private:
         auto* fft_w_coefficients = new std::complex<double>[n_fft_coeffs * (n_fft_coeffs / 2 + 1)];
         auto* fft_output = new double[n_fft_coeffs * n_fft_coeffs]();
 
+	// I added  | FFTW_UNALIGNED to the end to disable SIMD!!!!!!!!!!!!
         fftw_plan plan_dft, plan_idft;
-        plan_dft = fftw_plan_dft_r2c_2d(n_fft_coeffs, n_fft_coeffs, fft_input, reinterpret_cast<fftw_complex*>(fft_w_coefficients), FFTW_ESTIMATE);
-        plan_idft = fftw_plan_dft_c2r_2d(n_fft_coeffs, n_fft_coeffs, reinterpret_cast<fftw_complex*>(fft_w_coefficients), fft_output, FFTW_ESTIMATE);
+        plan_dft = fftw_plan_dft_r2c_2d(n_fft_coeffs, n_fft_coeffs, fft_input, reinterpret_cast<fftw_complex*>(fft_w_coefficients), FFTW_ESTIMATE | FFTW_UNALIGNED);
+        plan_idft = fftw_plan_dft_c2r_2d(n_fft_coeffs, n_fft_coeffs, reinterpret_cast<fftw_complex*>(fft_w_coefficients), fft_output, FFTW_ESTIMATE | FFTW_UNALIGNED);
 
         for (int d = 0; d < n_terms; d++)
         {
@@ -750,8 +751,9 @@ private:
             }
         }
 
+	// added  | FFTW_UNALIGNED!!!!!!!!!!!!!
         // Precompute the FFT of the kernel generating matrix
-        fftw_plan p = fftw_plan_dft_r2c_2d(n_fft_coeffs, n_fft_coeffs, kernel_tilde, reinterpret_cast<fftw_complex*>(fft_kernel_tilde), FFTW_ESTIMATE);\
+        fftw_plan p = fftw_plan_dft_r2c_2d(n_fft_coeffs, n_fft_coeffs, kernel_tilde, reinterpret_cast<fftw_complex*>(fft_kernel_tilde), FFTW_ESTIMATE | FFTW_UNALIGNED);
         fftw_execute(p);
 
 
