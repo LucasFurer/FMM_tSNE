@@ -11,11 +11,11 @@ int main()
 
     TsneTest tsne_test{};
     // tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
-    //                             1000,           // data_size
+    //                             10000,          // data_size
     //                             30.0f,          // perplexity
     //                             1000,           // iteration_amount
-    //                             0.5f,           // theta
-    //                             0.5f,           // cell_size
+    //                             0.6f,           // theta
+    //                             1.0f,           // cell_size
     //                             216308u         // seed
     // );
 
@@ -113,13 +113,13 @@ int main()
     Shader shader_tsne = Shader((std::filesystem::current_path().string() + "/shaders/shader_tsne.vs").c_str(),
                                 (std::filesystem::current_path().string() + "/shaders/shader_tsne.fs").c_str());
 
-    TSNE_buffers tsne(1.0,            // min_theta
-                      1.0,            // max_theta
-                      1.0,            // cell_size
-                      "MNIST_digits", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
-                      70000,          // data_size
-                      30.0f,          // perplexity
-                      216308u         // seed: 216308u, 592340823u, 4523u, 296343u
+    TSNE_buffers tsne(0.7,             // min_theta
+                      0.7,             // max_theta
+                      1.0,             // cell_size
+                      "MNIST_fashion", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
+                      70000,           // data_size
+                      30.0f,           // perplexity
+                      216308u          // seed: 216308u, 592340823u, 4523u, 296343u
     );
     tsne.nBodySelect = "FMMfast_SYM_MORTON";
     // tsne.nBodySelect = "PM";

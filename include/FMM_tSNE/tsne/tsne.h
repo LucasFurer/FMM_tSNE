@@ -31,6 +31,7 @@ class TSNE
 {
   public:
     double factor_ = 1.0;
+    double QijTotal_ = 0.0;
 
     std::vector<TsnePoint2D> embeddedPoints;
     std::vector<TsnePoint2D> embeddedPointsPrev;
@@ -300,13 +301,27 @@ class TSNE
 
     void updateRepulsive()
     {
-        double QijTotal = 0.0;
-        nBodySolvers[nBodySelect]->solveNbody(QijTotal, embeddedPoints);
-        QijTotal *= factor_;
-        QijTotal = 4.0 / QijTotal;
+        QijTotal_ = 0.0;
+        nBodySolvers[nBodySelect]->solveNbody(QijTotal_, embeddedPoints);
+        QijTotal_ *= factor_;
+        QijTotal_ = 4.0 / QijTotal_;
 
         for (int i = 0; i < embeddedPoints.size(); i++)
-            embeddedPoints[i].derivative *= QijTotal;
+            embeddedPoints[i].derivative *= QijTotal_;
+
+#ifdef INDEX_TRACKER
+        for (size_t i = 0; i < embeddedPointsPrevPrev.size(); i++)
+            embeddedPointsPrevPrev[embeddedPoints[i].ID] = embeddedPoints[i];
+        embeddedPointsPrevPrev.swap(embeddedPoints);
+#endif
+    }
+
+    void updateRepulsiveNoNorm()
+    {
+        QijTotal_ = 0.0;
+        nBodySolvers[nBodySelect]->solveNbody(QijTotal_, embeddedPoints);
+        QijTotal_ *= factor_;
+        QijTotal_ = 4.0 / QijTotal_;
 
 #ifdef INDEX_TRACKER
         for (size_t i = 0; i < embeddedPointsPrevPrev.size(); i++)
@@ -404,7 +419,7 @@ class TSNE
         embeddedPointsPrevPrev.swap(embeddedPoints);
 #endif
 
-        double QijTotal = 0.0;
+        QijTotal_ = 0.0;
 
         const unsigned numThreads = std::thread::hardware_concurrency();
         const size_t chunkSize = (points.size() + numThreads - 1) / numThreads;
@@ -442,7 +457,7 @@ class TSNE
         for (std::thread& th : threads)
             th.join();
 
-        QijTotal = std::accumulate(localTotals.begin(), localTotals.end(), 0.0);
+        QijTotal_ = std::accumulate(localTotals.begin(), localTotals.end(), 0.0);
 
         double totalCost = 0.0;
         for (int k = 0; k < Pmatrix.outerSize();
@@ -457,7 +472,7 @@ class TSNE
 
                     glm::dvec2 diff = point_col.position - point_row.position;
                     double distance_squared = diff.x * diff.x + diff.y * diff.y;
-                    double Qij = (1.0 / (1.0 + distance_squared)) / QijTotal;
+                    double Qij = (1.0 / (1.0 + distance_squared)) / QijTotal_;
 
                     double Pij = it.value();
 

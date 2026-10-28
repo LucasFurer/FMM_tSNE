@@ -96,6 +96,7 @@ class TsneTest
             tsne.nBodySelect = "naive";
             tsne.resetDeriv();
             tsne.updateRepulsive();
+            // tsne.updateRepulsiveNoNorm();
             naive_solution_rep = tsne.embeddedPoints;
             // storePrecomputed(naiveSolution, pre_computed_path_naive_solution / std::to_string(t));
 
@@ -109,8 +110,10 @@ class TsneTest
                 // tsne.updateDerivative();
                 tsne.resetDeriv();
                 tsne.updateRepulsive();
+                // tsne.updateRepulsiveNoNorm();
                 fast_solution_rep = tsne.embeddedPoints;
                 // fastSolutionIndexTracker = tsne.indexTracker;
+                // errors[candidate][t] = getNMAE(naive_solution_rep, fast_solution_rep);
                 errors[candidate][t] = getNMAE(naive_solution_rep, fast_solution_rep);
                 iteration_counts[candidate][t] = t;
             }
