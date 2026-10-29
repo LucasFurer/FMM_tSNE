@@ -2,9 +2,8 @@
 
 #include <FMM_tSNE/timer/timer.h>
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
-#include <FMM_tSNE/tsne/solvers/sFMM/node_sFMM.h>
-#include <FMM_tSNE/tsne/solvers/sFMM_fast/kernel_sFMM_fast.h>
-#include <FMM_tSNE/tsne/solvers/sFMM_fast/node_sFMM_fast.h>
+#include <FMM_tSNE/tsne/solvers/SFMM/kernel_SFMM.h>
+#include <FMM_tSNE/tsne/solvers/SFMM/node_SFMM.h>
 #include <FMM_tSNE/tsne/solvers/solver.h>
 #include <algorithm>
 #include <boost/sort/sort.hpp>
@@ -16,16 +15,16 @@
 #include <vector>
 
 template <typename T>
-class SolverSFMMFast : public NBodySolver<T>
+class SolverSFMM : public NBodySolver<T>
 {
   public:
-    std::vector<NodeSFMMFast> nodes;
+    std::vector<NodeSFMM> nodes;
     std::vector<unsigned char> depths;  // depth of the nodes parallel to 'nodes'
     std::vector<glm::dvec2> BB_centres; // centres of the nodes parrallel to 'nodes'
 
-    SolverSFMMFast() = default;
+    SolverSFMM() = default;
 
-    SolverSFMMFast(int initMaxChildren, double initTheta)
+    SolverSFMM(int initMaxChildren, double initTheta)
     {
         this->maxChildren = initMaxChildren;
         this->theta = initTheta;
@@ -71,8 +70,7 @@ class SolverSFMMFast : public NBodySolver<T>
     }
 
   private:
-    void
-    traverse_SYM_NN(double& total, std::vector<T>& points, NodeSFMMFast& node_A, NodeSFMMFast& node_B, double theta_sq)
+    void traverse_SYM_NN(double& total, std::vector<T>& points, NodeSFMM& node_A, NodeSFMM& node_B, double theta_sq)
     {
         // check for node self interaction so it neededn't be checked later
         // self interaction also doesnt require theta check since it will never pass
@@ -84,7 +82,7 @@ class SolverSFMMFast : public NBodySolver<T>
                 const unsigned end = node_A.first_particle_index + node_A.particle_index_amount;
                 for (unsigned i = node_A.first_particle_index; i < end; ++i)
                     for (unsigned j = i + 1; j < end; ++j)
-                        TSNE_sFMMfast_PP(total, points[i], points[j]);
+                        TSNE_SFMM_PP(total, points[i], points[j]);
             }
             // if node is not leaf then do each NN interaction that is unique
             else
@@ -104,7 +102,7 @@ class SolverSFMMFast : public NBodySolver<T>
         // efficient theta check
         if (glm::dot(diff, diff) * theta_sq > length_sum * length_sum)
         {
-            TSNE_sFMMfast_NN(total, node_A, node_B);
+            TSNE_SFMM_NN(total, node_A, node_B);
         }
         // if A is leaf then do PN interaction with B for every point in A
         else if (node_A.child_index_amount == 0)
@@ -143,7 +141,7 @@ class SolverSFMMFast : public NBodySolver<T>
         }
     }
 
-    void traverse_SYM_PN(double& total, std::vector<T>& points, T& point, NodeSFMMFast& node, double theta_sq)
+    void traverse_SYM_PN(double& total, std::vector<T>& points, T& point, NodeSFMM& node, double theta_sq)
     {
         glm::dvec2 diff = point.position - node.COM;
         double length_sum = node.BB_length;
@@ -151,7 +149,7 @@ class SolverSFMMFast : public NBodySolver<T>
         // efficient theta check
         if (glm::dot(diff, diff) * theta_sq > length_sum * length_sum)
         {
-            TSNE_sFMMfast_PN(total, point, node);
+            TSNE_SFMM_PN(total, point, node);
         }
         // if node is leaf then do PP interaction with point for every point in node
         else if (node.child_index_amount == 0)
@@ -160,7 +158,7 @@ class SolverSFMMFast : public NBodySolver<T>
                  secondNodePointIndex < node.first_particle_index + node.particle_index_amount;
                  secondNodePointIndex++)
             {
-                TSNE_sFMMfast_PP(total, point, points[secondNodePointIndex]);
+                TSNE_SFMM_PP(total, point, points[secondNodePointIndex]);
             }
         }
         // if B is not leaf then make all children interact with point
@@ -185,7 +183,7 @@ class SolverSFMMFast : public NBodySolver<T>
         BB_centres.clear();
         if (points.empty()) return;
 
-        NodeSFMMFast root(largestAxis, 0, static_cast<unsigned>(points.size()));
+        NodeSFMM root(largestAxis, 0, static_cast<unsigned>(points.size()));
 
         nodes.push_back(root);
         depths.push_back(0);
@@ -244,7 +242,7 @@ class SolverSFMMFast : public NBodySolver<T>
             {
                 if (bounds[q] == bounds[q + 1]) continue;
 
-                NodeSFMMFast child(child_length, bounds[q], bounds[q + 1] - bounds[q]);
+                NodeSFMM child(child_length, bounds[q], bounds[q + 1] - bounds[q]);
 
                 nodes.push_back(child);
                 depths.push_back(static_cast<unsigned char>(depth + 1));
@@ -260,7 +258,7 @@ class SolverSFMMFast : public NBodySolver<T>
         // weird loop to avoid size_t underflow
         for (size_t n = nodes.size(); n-- > 0;)
         {
-            NodeSFMMFast& node = nodes[n];
+            NodeSFMM& node = nodes[n];
 
             // leaf node
             if (node.child_index_amount == 0)
@@ -299,7 +297,7 @@ class SolverSFMMFast : public NBodySolver<T>
                 glm::dvec2 weighted{0.0};
                 for (unsigned c = 0; c < node.child_index_amount; ++c)
                 {
-                    const NodeSFMMFast& child = nodes[node.first_child_index + c];
+                    const NodeSFMM& child = nodes[node.first_child_index + c];
                     mass += child.M0;
                     weighted += child.M0 * child.COM;
                 }
@@ -338,7 +336,7 @@ class SolverSFMMFast : public NBodySolver<T>
         return x;
     }
 
-    void applyForces(std::vector<T>& points, NodeSFMMFast& node)
+    void applyForces(std::vector<T>& points, NodeSFMM& node)
     {
         if (node.child_index_amount != 0)
         {
@@ -433,7 +431,7 @@ class SolverSFMMFast : public NBodySolver<T>
         return x;
     }
 
-    void getNodesBufferData(std::vector<VertexPos2Col3>& nodesBufferData, const NodeSFMMFast&, int, int showLevel)
+    void getNodesBufferData(std::vector<VertexPos2Col3>& nodesBufferData, const NodeSFMM&, int, int showLevel)
     {
         for (size_t i{}; i < nodes.size(); ++i)
         {

@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-struct NodeSFMMFast
+struct NodeSFMM
 {
     glm::dvec2 COM{};
 
@@ -30,7 +30,7 @@ struct NodeSFMMFast
     double C3xyy{};
     double C3yyy{};
 
-    NodeSFMMFast(double in_BB_length, unsigned int in_first_particle_index, unsigned int in_particle_index_amount)
+    NodeSFMM(double in_BB_length, unsigned int in_first_particle_index, unsigned int in_particle_index_amount)
         : BB_length{in_BB_length},
           first_particle_index{in_first_particle_index},
           particle_index_amount{in_particle_index_amount}

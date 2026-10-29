@@ -706,16 +706,6 @@ class TsneTest
                 double max_point = max_points[m];
                 tsne.nBodySolvers[method]->maxChildren = max_point;
 
-#ifdef INDEX_TRACKER
-                if (method == "FMM_SYM_MORTON")
-                {
-                    unsigned int new_depth = NBodySolverFMM_SYM_MORTON<TsnePoint2D>::getDepth(max_point, data_size);
-                    NBodySolverFMM_SYM_MORTON<TsnePoint2D>* solver =
-                        dynamic_cast<NBodySolverFMM_SYM_MORTON<TsnePoint2D>*>(tsne.nBodySolvers[method]);
-                    solver->initNodesSize(new_depth);
-                }
-#endif
-
                 std::vector<TsnePoint2D> naiveSolution(data_size);
                 std::vector<TsnePoint2D> fastSolution(data_size);
 

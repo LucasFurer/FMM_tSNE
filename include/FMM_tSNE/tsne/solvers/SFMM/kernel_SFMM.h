@@ -1,10 +1,10 @@
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
-#include <FMM_tSNE/tsne/solvers/sFMM_fast/node_sFMM_fast.h>
+#include <FMM_tSNE/tsne/solvers/SFMM/node_SFMM.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-inline void TSNE_sFMMfast_NN(double& total, NodeSFMMFast& sinkNode, NodeSFMMFast& sourceNode)
+inline void TSNE_SFMM_NN(double& total, NodeSFMM& sinkNode, NodeSFMM& sourceNode)
 {
     glm::dvec2 R = sinkNode.COM - sourceNode.COM;
     double sq_r = R.x * R.x + R.y * R.y;
@@ -92,7 +92,7 @@ inline void TSNE_sFMMfast_NN(double& total, NodeSFMMFast& sinkNode, NodeSFMMFast
     total += 2.0 * (sinkNode.M0 * sourceNode.M0) / rS;
 }
 
-inline void TSNE_sFMMfast_PN(double& total, TsnePoint2D& sinkPoint, NodeSFMMFast& sourceNode)
+inline void TSNE_SFMM_PN(double& total, TsnePoint2D& sinkPoint, NodeSFMM& sourceNode)
 {
     glm::dvec2 R = sinkPoint.position - sourceNode.COM;
     double sq_r = R.x * R.x + R.y * R.y;
@@ -159,7 +159,7 @@ inline void TSNE_sFMMfast_PN(double& total, TsnePoint2D& sinkPoint, NodeSFMMFast
     total += 2.0 * sourceNode.M0 / rS;
 }
 
-inline void TSNE_sFMMfast_PP(double& total, TsnePoint2D& sinkPoint, TsnePoint2D& sourcePoint)
+inline void TSNE_SFMM_PP(double& total, TsnePoint2D& sinkPoint, TsnePoint2D& sourcePoint)
 {
     glm::dvec2 R = sinkPoint.position - sourcePoint.position;
     double sq_dist = R.x * R.x + R.y * R.y;

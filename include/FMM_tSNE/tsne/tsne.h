@@ -8,9 +8,8 @@
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
 #include <FMM_tSNE/tsne/solvers/BH/solver_BH.h>
 #include <FMM_tSNE/tsne/solvers/PM/solver_PM.h>
+#include <FMM_tSNE/tsne/solvers/SFMM/solver_SFMM.h>
 #include <FMM_tSNE/tsne/solvers/naive/solver_naive.h>
-#include <FMM_tSNE/tsne/solvers/sFMM/solver_sFMM.h>
-#include <FMM_tSNE/tsne/solvers/sFMM_fast/solver_sFMM_fast.h>
 #include <FMM_tSNE/tsne/solvers/solver.h>
 #include <FMM_tSNE/tsne/solvers/solver_tree.h>
 #include <GLFW/glfw3.h>
@@ -124,16 +123,8 @@ class TSNE
         //     NBodySolverFMM_MORTON<TsnePoint2D>::getDepth(max_children_per_node, data_amount),
         //     max_theta);
         // nBodySolvers["FMM_MORTON"]->updateTree(embeddedPoints, minPos, maxPos);
-        nBodySolvers["FMM_SYM_MORTON"] = new NBodySolverFMM_SYM_MORTON<TsnePoint2D>(
-            &TSNE_FMM_SYM_MORTON_NN_Kernel,
-            &TSNE_FMM_SYM_MORTON_PN_Kernel,
-            &TSNE_FMM_SYM_MORTON_PP_Kernel,
-            max_children_per_node,
-            NBodySolverFMM_SYM_MORTON<TsnePoint2D>::getDepth(max_children_per_node, data_amount),
-            max_theta);
+        nBodySolvers["FMM_SYM_MORTON"] = new SolverSFMM<TsnePoint2D>(max_children_per_node, max_theta);
         nBodySolvers["FMM_SYM_MORTON"]->updateTree(embeddedPoints, minPos, maxPos);
-        nBodySolvers["FMMfast_SYM_MORTON"] = new SolverSFMMFast<TsnePoint2D>(max_children_per_node, max_theta);
-        nBodySolvers["FMMfast_SYM_MORTON"]->updateTree(embeddedPoints, minPos, maxPos);
 #endif
     }
 
@@ -190,7 +181,6 @@ class TSNE
 #ifdef INDEX_TRACKER
         // nBodySolvers["FMM_MORTON"]->updateTree(embeddedPoints, minPos, maxPos);
         nBodySolvers["FMM_SYM_MORTON"]->updateTree(embeddedPoints, minPos, maxPos);
-        nBodySolvers["FMMfast_SYM_MORTON"]->updateTree(embeddedPoints, minPos, maxPos);
 #endif
     }
 
