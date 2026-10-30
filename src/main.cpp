@@ -10,14 +10,14 @@ int main()
     App app{};
 
     TsneTest tsne_test{};
-    // tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
-    //                             10000,          // data_size
-    //                             30.0f,          // perplexity
-    //                             1000,           // iteration_amount
-    //                             0.6f,           // theta
-    //                             1.0f,           // cell_size
-    //                             216308u         // seed
-    // );
+    tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
+                                1000,           // data_size
+                                30.0f,          // perplexity
+                                1000,           // iteration_amount
+                                0.7f,           // theta
+                                1.0f,           // cell_size
+                                216308u         // seed
+    );
 
     // tsne_test.calculationtimeThetaTSNE("MNIST_digits",                                           // data_set
     //                                    10000,                                                    // data_size
@@ -96,10 +96,10 @@ int main()
     // );
 
     // tsne_test.errorTimestepTSNE_Zaccum("MNIST_digits", // data_set
-    //                                    10000,          // data_size
+    //                                    70000,          // data_size
     //                                    30.0f,          // perplexity
     //                                    1000,           // iteration_amount
-    //                                    1.0f,           // theta
+    //                                    0.7f,           // theta
     //                                    1.0f,           // cell_size
     //                                    216308u         // seed
     // );
@@ -113,15 +113,16 @@ int main()
     Shader shader_tsne = Shader((std::filesystem::current_path().string() + "/shaders/shader_tsne.vs").c_str(),
                                 (std::filesystem::current_path().string() + "/shaders/shader_tsne.fs").c_str());
 
-    TSNE_buffers tsne(0.7,             // min_theta
-                      0.7,             // max_theta
-                      1.0,             // cell_size
-                      "MNIST_fashion", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
-                      70000,           // data_size
-                      30.0f,           // perplexity
-                      216308u          // seed: 216308u, 592340823u, 4523u, 296343u
+    TSNE_buffers tsne(0.7,            // min_theta
+                      0.7,            // max_theta
+                      1.0,            // cell_size
+                      "MNIST_digits", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
+                      70000,          // data_size
+                      30.0f,          // perplexity
+                      216308u         // seed: 216308u, 592340823u, 4523u, 296343u
     );
     tsne.nBodySelect = "FMM_SYM_MORTON";
+    // tsne.nBodySelect = "FMM_MORTON";
     // tsne.nBodySelect = "PM";
 
     Renderable points_renderable(GL_POINTS, model, tsne.embeddedBuffer, &shader_tsne, nullptr);

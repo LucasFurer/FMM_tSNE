@@ -962,8 +962,8 @@ class TsneTest
                     // calculate the result of every approximation technique and find the error by comparing to naive
                     tsne.resetDeriv();
                     tsne.iteration_counter = t;
-                    tsne.nBodySelect = "FMMfast_SYM_MORTON";
-                    tsne.nBodySolvers["FMMfast_SYM_MORTON"]->updateTree(tsne.embeddedPoints, tsne.minPos, tsne.maxPos);
+                    tsne.nBodySelect = "FMM_SYM_MORTON";
+                    tsne.nBodySolvers["FMM_SYM_MORTON"]->updateTree(tsne.embeddedPoints, tsne.minPos, tsne.maxPos);
                     // tsne.updateDerivative();
                     tsne.resetDeriv();
                     tsne.updateRepulsive();
