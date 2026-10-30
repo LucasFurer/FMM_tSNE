@@ -474,7 +474,7 @@ class TSNE
             }
         }
 
-        // std::cout << "totalCost: " << totalCost << std::endl;
+        std::cout << "totalCost: " << totalCost << std::endl;
 
 #ifdef INDEX_TRACKER
         nBodySolvers[nBodySelect]->updateTree(embeddedPoints, minPos, maxPos);

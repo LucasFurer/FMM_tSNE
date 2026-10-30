@@ -10,14 +10,14 @@ int main()
     App app{};
 
     TsneTest tsne_test{};
-    tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
-                                1000,           // data_size
-                                30.0f,          // perplexity
-                                1000,           // iteration_amount
-                                0.7f,           // theta
-                                1.0f,           // cell_size
-                                216308u         // seed
-    );
+    // tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
+    //                             1000,           // data_size
+    //                             30.0f,          // perplexity
+    //                             1000,           // iteration_amount
+    //                             0.7f,           // theta
+    //                             1.0f,           // cell_size
+    //                             216308u         // seed
+    // );
 
     // tsne_test.calculationtimeThetaTSNE("MNIST_digits",                                           // data_set
     //                                    10000,                                                    // data_size
