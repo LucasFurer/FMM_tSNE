@@ -11,6 +11,7 @@
 #include <FMM_tSNE/tsne/solvers/PM/solver_PM.h>
 #include <FMM_tSNE/tsne/solvers/SFMM/solver_SFMM.h>
 #include <FMM_tSNE/tsne/solvers/naive/solver_naive.h>
+#include <FMM_tSNE/tsne/solvers/naive_GPU/solver_naive_GPU.h>
 #include <FMM_tSNE/tsne/solvers/solver.h>
 #include <FMM_tSNE/tsne/solvers/solver_tree.h>
 #include <GLFW/glfw3.h>
@@ -95,7 +96,8 @@ class TSNE
         updateMinMaxPos();
 
         int max_children_per_node = 16;
-        nBodySolvers["naive"] = new NBodySolverNaive<TsnePoint2D>(&TSNEnaiveKernel);
+        // nBodySolvers["naive"] = new NBodySolverNaive<TsnePoint2D>(&TSNEnaiveKernel);
+        nBodySolvers["naive"] = new NBodySolverNaiveCUDA<TsnePoint2D>();
         nBodySolvers["BH"] = new NBodySolverTree<TsnePoint2D, Policy_BH>(max_children_per_node, max_theta);
         nBodySolvers["BH"]->updateTree(embeddedPoints, minPos, maxPos);
         // nBodySolvers["BHR"] =

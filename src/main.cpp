@@ -1,6 +1,5 @@
 #include <FMM_tSNE/app.h>
 #include <FMM_tSNE/cameras/two_D_camera.h>
-#include <FMM_tSNE/cuda_hello.h>
 #include <FMM_tSNE/tsne/tests/tsne_test.h>
 #include <FMM_tSNE/tsne/tsne_buffers.h>
 #include <glm/glm.hpp>
@@ -8,19 +7,17 @@
 
 int main()
 {
-    cuda_hello();
-
     App app{};
 
     TsneTest tsne_test{};
-    // tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
-    //                             10000,          // data_size
-    //                             30.0f,          // perplexity
-    //                             1000,           // iteration_amount
-    //                             0.3f,           // theta
-    //                             1.0f,           // cell_size
-    //                             216308u         // seed
-    // );
+    tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
+                                10000,          // data_size
+                                30.0f,          // perplexity
+                                1000,           // iteration_amount
+                                0.3f,           // theta
+                                1.0f,           // cell_size
+                                216308u         // seed
+    );
 
     // tsne_test.calculationtimeThetaTSNE("MNIST_digits",                                           // data_set
     //                                    10000,                                                    // data_size
@@ -124,9 +121,11 @@ int main()
                       30.0f,          // perplexity
                       216308u         // seed: 216308u, 592340823u, 4523u, 296343u
     );
-    tsne.nBodySelect = "FMM_SYM_MORTON";
+    // tsne.nBodySelect = "FMM_SYM_MORTON";
     // tsne.nBodySelect = "FMM_MORTON";
     // tsne.nBodySelect = "PM";
+    // tsne.nBodySelect = "naive_GPU";
+    tsne.nBodySelect = "naive";
 
     Renderable points_renderable(GL_POINTS, model, tsne.embeddedBuffer, &shader_tsne, nullptr);
 
