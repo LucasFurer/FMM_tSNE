@@ -95,8 +95,8 @@ class TsneTest
             tsne.iteration_counter = t;
             tsne.nBodySelect = "naive";
             tsne.resetDeriv();
-            tsne.updateRepulsive();
-            // tsne.updateRepulsiveNoNorm();
+            // tsne.updateRepulsive();
+            tsne.updateRepulsiveNoNorm();
             naive_solution_rep = tsne.embeddedPoints;
             // storePrecomputed(naiveSolution, pre_computed_path_naive_solution / std::to_string(t));
 
@@ -109,8 +109,8 @@ class TsneTest
                 tsne.nBodySolvers[candidate]->updateTree(tsne.embeddedPoints, tsne.minPos, tsne.maxPos);
                 // tsne.updateDerivative();
                 tsne.resetDeriv();
-                tsne.updateRepulsive();
-                // tsne.updateRepulsiveNoNorm();
+                // tsne.updateRepulsive();
+                tsne.updateRepulsiveNoNorm();
                 fast_solution_rep = tsne.embeddedPoints;
                 // fastSolutionIndexTracker = tsne.indexTracker;
                 // errors[candidate][t] = getNMAE(naive_solution_rep, fast_solution_rep);
@@ -416,7 +416,8 @@ class TsneTest
                                   std::vector<double> cell_sizes,
                                   unsigned int seed)
     {
-        TSNE tsne(thetas[0], 3.0, cell_sizes[0], dataset_type, data_size, perplexity_value, seed);
+        // TSNE tsne(thetas[0], 3.0, cell_sizes[0], dataset_type, data_size, perplexity_value, seed);
+        TSNE tsne(thetas[0], thetas[0], cell_sizes[0], dataset_type, data_size, perplexity_value, seed);
 
         int theta_diversity_amount = thetas.size();
 
@@ -441,7 +442,9 @@ class TsneTest
             double chosen_theta = thetas[t];
             double chosen_cell_size = cell_sizes[t];
 
-            tsne.resetTsne(chosen_theta, 3.0, chosen_cell_size, dataset_type, data_size, perplexity_value, seed);
+            // tsne.resetTsne(chosen_theta, 3.0, chosen_cell_size, dataset_type, data_size, perplexity_value, seed);
+            tsne.resetTsne(
+                chosen_theta, chosen_theta, chosen_cell_size, dataset_type, data_size, perplexity_value, seed);
 
             std::vector<TsnePoint2D> naive_solution_rep(data_size);
             std::vector<TsnePoint2D> fast_solution_rep(data_size);
@@ -503,6 +506,7 @@ class TsneTest
                 tsne.nBodySelect = "naive";
                 tsne.resetDeriv();
                 tsne.updateRepulsive();
+                // tsne.updateRepulsiveNoNorm();
                 naive_solution_rep = tsne.embeddedPoints;
                 // storePrecomputed(naive_solution_rep, pre_computed_path_naive_solution / std::to_string(j));
                 //}
@@ -517,6 +521,7 @@ class TsneTest
                     // tsne.updateDerivative();
                     tsne.resetDeriv();
                     tsne.updateRepulsive();
+                    // tsne.updateRepulsiveNoNorm();
                     times[candidate][t] += glfwGetTime() - timeBefore;
                     fast_solution_rep = tsne.embeddedPoints;
                     // fastSolutionIndexTracker = tsne.indexTracker;

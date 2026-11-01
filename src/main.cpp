@@ -1,5 +1,6 @@
 #include <FMM_tSNE/app.h>
 #include <FMM_tSNE/cameras/two_D_camera.h>
+#include <FMM_tSNE/cuda_hello.h>
 #include <FMM_tSNE/tsne/tests/tsne_test.h>
 #include <FMM_tSNE/tsne/tsne_buffers.h>
 #include <glm/glm.hpp>
@@ -7,14 +8,16 @@
 
 int main()
 {
+    cuda_hello();
+
     App app{};
 
     TsneTest tsne_test{};
     // tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
-    //                             1000,           // data_size
+    //                             10000,          // data_size
     //                             30.0f,          // perplexity
     //                             1000,           // iteration_amount
-    //                             0.7f,           // theta
+    //                             0.3f,           // theta
     //                             1.0f,           // cell_size
     //                             216308u         // seed
     // );
@@ -37,11 +40,11 @@ int main()
     //                          216308u                                                   // seed
     // );
 
-    // tsne_test.calculationtimeErrorTSNE("MNIST_digits",                                           // data_set
-    //                                    70000,                                                    // data_size
-    //                                    30.0f,                                                    // perplexity
-    //                                    10,                                                       // iteration_amount
-    //                                    std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // thetas
+    // tsne_test.calculationtimeErrorTSNE("MNIST_digits",                                         // data_set
+    //                                    10000,                                                  // data_size
+    //                                    30.0f,                                                  // perplexity
+    //                                    1000,                                                   // iteration_amount
+    //                                    std::vector<double>{0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 3.0}, // thetas
     //                                    // std::vector<double>{0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,
     //                                    // 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5}, // thetas
     //                                    std::vector<double>{0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0}, // cell_sizes

@@ -1,0 +1,15 @@
+CompileFlags:
+  Add:
+    - --cuda-path=/opt/cuda
+    - --cuda-gpu-arch=sm_61
+  Remove:
+    - -arch=*
+    - --generate-code=*
+    - -gencode*
+    - -forward-unknown-to-host-compiler
+    - -Xcompiler*
+    - -Xfatbin*
+    - -rdc=*
+    - --expt-*
+    - -ccbin*
+    - --extended-lambda

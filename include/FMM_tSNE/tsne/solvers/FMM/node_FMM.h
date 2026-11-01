@@ -3,6 +3,19 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+struct MF
+{
+    double C1x{};
+    double C1y{};
+    double C2xx{};
+    double C2xy{};
+    double C2yy{};
+    double C3xxx{};
+    double C3xxy{};
+    double C3xyy{};
+    double C3yyy{};
+};
+
 struct NodeFMM
 {
     glm::dvec2 COM{};
