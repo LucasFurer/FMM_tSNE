@@ -60,23 +60,6 @@ class TsneTest
             iteration_counts.insert({candidate, std::vector<int>(iteration_amount, 0)});
         }
 
-        // std::string indexCheck = "noindex";
-
-        // std::string full = "full";
-        // std::string compare = "comp";
-        // std::filesystem::path pre_computed_path_full_naive_solution = std::filesystem::current_path() /
-        // std::string("precomputed_states") / dataset_type / std::to_string(data_size) /
-        // std::to_string(static_cast<unsigned int>(perplexity_value)) / std::to_string(seed) / indexCheck / full;
-        // std::filesystem::path pre_computed_path_naive_solution = std::filesystem::current_path() /
-        // std::string("precomputed_states") / dataset_type / std::to_string(data_size) /
-        // std::to_string(static_cast<unsigned int>(perplexity_value)) / std::to_string(seed) / indexCheck / compare;
-
-        // if (!std::filesystem::exists(pre_computed_path_full_naive_solution))
-        //     std::filesystem::create_directories(pre_computed_path_full_naive_solution);
-
-        // if (!std::filesystem::exists(pre_computed_path_naive_solution))
-        //     std::filesystem::create_directories(pre_computed_path_naive_solution);
-
         // find error at every time step
         for (int t = 0; t < iteration_amount; t++)
         {
@@ -89,7 +72,6 @@ class TsneTest
             tsne.nBodySelect = "naive";
             tsne.updateDerivative();
             naive_solution = tsne.embeddedPoints;
-            // storePrecomputed(naive_solution, pre_computed_path_full_naive_solution / std::to_string(t));
 
             tsne.resetDeriv();
             tsne.iteration_counter = t;
@@ -98,7 +80,6 @@ class TsneTest
             // tsne.updateRepulsive();
             tsne.updateRepulsiveNoNorm();
             naive_solution_rep = tsne.embeddedPoints;
-            // storePrecomputed(naiveSolution, pre_computed_path_naive_solution / std::to_string(t));
 
             for (std::string candidate : candidates)
             {
@@ -112,8 +93,6 @@ class TsneTest
                 // tsne.updateRepulsive();
                 tsne.updateRepulsiveNoNorm();
                 fast_solution_rep = tsne.embeddedPoints;
-                // fastSolutionIndexTracker = tsne.indexTracker;
-                // errors[candidate][t] = getNMAE(naive_solution_rep, fast_solution_rep);
                 errors[candidate][t] = getNMAE(naive_solution_rep, fast_solution_rep);
                 iteration_counts[candidate][t] = t;
             }
@@ -451,27 +430,6 @@ class TsneTest
 
             std::vector<TsnePoint2D> naive_solution(data_size);
 
-            // #ifdef INDEX_TRACKER
-            // std::string indexCheck = "index";
-            // #else
-            // std::string indexCheck = "noindex";
-            // #endif
-            // std::string full = "full";
-            // std::string compare = "comp";
-            // std::filesystem::path pre_computed_path_full_naive_solution = std::filesystem::current_path() /
-            // std::string("precomputed_states") / dataset_type / std::to_string(data_size) /
-            // std::to_string(static_cast<unsigned int>(perplexity_value)) / std::to_string(seed) / indexCheck / full;
-            // std::filesystem::path pre_computed_path_naive_solution = std::filesystem::current_path() /
-            // std::string("precomputed_states") / dataset_type / std::to_string(data_size) /
-            // std::to_string(static_cast<unsigned int>(perplexity_value)) / std::to_string(seed) / indexCheck /
-            // compare;
-
-            // if (!std::filesystem::exists(pre_computed_path_full_naive_solution))
-            //     std::filesystem::create_directories(pre_computed_path_full_naive_solution);
-
-            // if (!std::filesystem::exists(pre_computed_path_naive_solution))
-            //     std::filesystem::create_directories(pre_computed_path_naive_solution);
-
             double timeBefore = 0.0f;
             for (int j = 0; j < iteration_amount; j++)
             {
@@ -480,27 +438,12 @@ class TsneTest
 
                 tsne.updateMinMaxPos();
 
-                // correct solution up to machine precision
-                // if (std::filesystem::exists(pre_computed_path_full_naive_solution / std::to_string(j)))
-                //{
-                //    loadPrecomputed(naive_solution, pre_computed_path_full_naive_solution / std::to_string(j));
-                //}
-                // else
-                //{
                 tsne.resetDeriv();
                 tsne.iteration_counter = j;
                 tsne.nBodySelect = "naive";
                 tsne.updateDerivative();
                 naive_solution = tsne.embeddedPoints;
-                // storePrecomputed(naive_solution, pre_computed_path_full_naive_solution / std::to_string(j));
-                //}
 
-                // if (std::filesystem::exists(pre_computed_path_naive_solution / std::to_string(j)))
-                //{
-                //     loadPrecomputed(naive_solution_rep, pre_computed_path_naive_solution / std::to_string(j));
-                // }
-                // else
-                //{
                 tsne.resetDeriv();
                 tsne.iteration_counter = j;
                 tsne.nBodySelect = "naive";
@@ -508,8 +451,6 @@ class TsneTest
                 tsne.updateRepulsive();
                 // tsne.updateRepulsiveNoNorm();
                 naive_solution_rep = tsne.embeddedPoints;
-                // storePrecomputed(naive_solution_rep, pre_computed_path_naive_solution / std::to_string(j));
-                //}
 
                 for (std::string candidate : candidates)
                 {
@@ -524,7 +465,6 @@ class TsneTest
                     // tsne.updateRepulsiveNoNorm();
                     times[candidate][t] += glfwGetTime() - timeBefore;
                     fast_solution_rep = tsne.embeddedPoints;
-                    // fastSolutionIndexTracker = tsne.indexTracker;
                     errors[candidate][t] += getNMAE(naive_solution_rep, fast_solution_rep);
                 }
 
@@ -539,7 +479,10 @@ class TsneTest
             {
                 errors[candidate][t] /= iteration_amount;
                 times[candidate][t] /= iteration_amount;
-                thetas_arrays[candidate][t] = chosen_theta;
+                if (candidate == "PM")
+                    thetas_arrays[candidate][t] = chosen_cell_size;
+                else
+                    thetas_arrays[candidate][t] = chosen_theta;
             }
         }
 
@@ -590,7 +533,7 @@ class TsneTest
             tsne.updateDerivative();
             if (t % 10 == 0)
             {
-                costs[t] = costFunction(tsne.embeddedPoints, tsne.Pmatrix);
+                costs[t] = TSNE::costFunction(tsne.embeddedPoints, tsne.Pmatrix);
 
                 if (t > 0)
                 {
@@ -664,7 +607,7 @@ class TsneTest
                 tsne.updatePoints();
             }
 
-            finalCost[t] = costFunction(tsne.embeddedPoints, tsne.Pmatrix);
+            finalCost[t] = TSNE::costFunction(tsne.embeddedPoints, tsne.Pmatrix);
 
             calculationtime[t] /= iteration_amount;
         }
@@ -1022,74 +965,6 @@ class TsneTest
         MRE = MRE / points_naive.size();
 
         return MRE;
-    }
-
-    double costFunction(const std::vector<TsnePoint2D>& points, Eigen::SparseMatrix<double>& Pmatrix)
-    {
-        double QijTotal = 0.0;
-
-        const unsigned numThreads = std::thread::hardware_concurrency();
-        const size_t chunkSize = (points.size() + numThreads - 1) / numThreads;
-
-        std::vector<std::thread> threads;
-        std::vector<double> localTotals(numThreads, 0.0);
-
-        for (unsigned t = 0; t < numThreads; ++t)
-        {
-            size_t begin = t * chunkSize;
-            size_t end = std::min(begin + chunkSize, points.size());
-
-            threads.emplace_back(
-                [&, t, begin, end]()
-                {
-                    double threadTotal = 0.0;
-
-                    for (size_t i = begin; i < end; ++i)
-                    {
-                        for (size_t j = 0; j < points.size(); ++j)
-                        {
-                            if (i == j) continue;
-
-                            const TsnePoint2D& point_i = points[i];
-                            const TsnePoint2D& point_j = points[j];
-
-                            glm::dvec2 diff = point_j.position - point_i.position;
-                            double distance_squared = diff.x * diff.x + diff.y * diff.y;
-                            localTotals[t] += static_cast<double>(1.0 / (1.0 + distance_squared));
-                        }
-                    }
-                });
-        }
-
-        for (std::thread& th : threads)
-            th.join();
-
-        QijTotal = std::accumulate(localTotals.begin(), localTotals.end(), 0.0);
-
-        double totalCost = 0.0;
-        for (int k = 0; k < Pmatrix.outerSize();
-             ++k) // https://stackoverflow.com/questions/22421244/eigen-package-iterate-over-row-major-sparse-matrix
-        {
-            for (Eigen::SparseMatrix<double>::InnerIterator it(Pmatrix, k); it; ++it)
-            {
-                if (it.col() != it.row())
-                {
-                    const TsnePoint2D& point_col = points[it.col()];
-                    const TsnePoint2D& point_row = points[it.row()];
-
-                    glm::dvec2 diff = point_col.position - point_row.position;
-                    double distance_squared = diff.x * diff.x + diff.y * diff.y;
-                    double Qij = static_cast<double>(1.0 / (1.0 + distance_squared)) / QijTotal;
-
-                    double Pij = it.value();
-
-                    totalCost += Pij * std::log2(Pij / Qij);
-                }
-            }
-        }
-
-        // std::cout << "total cost: " << totalCost << std::endl;
-        return totalCost;
     }
 
     template <typename T, typename I>

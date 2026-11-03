@@ -20,26 +20,6 @@
 #include <utility>
 #include <vector>
 
-// #include "../Timer.h"
-// #include "../common.h"
-// #include "../dataLoaders/loader.h"
-// #include "../ffthelper.h"
-// #include "../nbodysolvers/cpu/nBodySolverBH.h"
-// #include "../nbodysolvers/cpu/nBodySolverBHMP.h"
-// #include "../nbodysolvers/cpu/nBodySolverBHR.h"
-// #include "../nbodysolvers/cpu/nBodySolverBHRMP.h"
-// #include "../nbodysolvers/cpu/nBodySolverFMM.h"
-// #include "../nbodysolvers/cpu/nBodySolverFMM_MORTON.h"
-// #include "../nbodysolvers/cpu/nBodySolverFMM_SYM_MORTON.h"
-// #include "../nbodysolvers/cpu/nBodySolverFMMiter.h"
-// #include "../nbodysolvers/cpu/nBodySolverNaive.h"
-// #include "../nbodysolvers/cpu/nBodySolverPM.h"
-// #include "../openGLhelper/buffer.h"
-// #include "../particleMesh.h"
-// #include "../particles/embeddedPoint.h"
-// #include "../particles/tsnePoint2D.h"
-// #include "tsne.h"
-
 class TSNE_buffers final : public TSNE
 {
   public:
@@ -111,7 +91,7 @@ class TSNE_buffers final : public TSNE
     {
         if (iteration_counter == 1)
         {
-            // costFunction(this->embeddedPoints, this->Pmatrix);
+            TSNE::costFunction(this->embeddedPoints, this->Pmatrix);
             thousand_iteration_timer.startTimer();
         }
 
@@ -122,7 +102,7 @@ class TSNE_buffers final : public TSNE
             thousand_iteration_timer.endTimer("A thousand iterations");
             std::cout << thousand_iteration_timer.elapsed_time() << "\n";
 
-            costFunction(this->embeddedPoints, this->Pmatrix);
+            TSNE::costFunction(this->embeddedPoints, this->Pmatrix);
         }
 
         if (glfwGetTime() - time_since_last_iteration >= 1.0 / static_cast<double>(desired_iteration_per_second))

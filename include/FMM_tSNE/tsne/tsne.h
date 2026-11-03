@@ -5,6 +5,7 @@
 #include <FMM_tSNE/data_loaders/sparse_entry_CSC_2D.h>
 #include <FMM_tSNE/opengl_interaction/scene.h>
 #include <FMM_tSNE/timer/timer.h>
+#include <FMM_tSNE/tsne/Q_total_cuda.h>
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
 #include <FMM_tSNE/tsne/solvers/BH/solver_BH.h>
 #include <FMM_tSNE/tsne/solvers/FMM/solver_FMM.h>
@@ -406,57 +407,31 @@ class TSNE
         }
     }
 
-    void costFunction(const std::vector<TsnePoint2D>& points, Eigen::SparseMatrix<double>& Pmatrix)
+    static double costFunction(const std::vector<TsnePoint2D>& points_og, Eigen::SparseMatrix<double>& Pmatrix)
     {
+        std::vector<TsnePoint2D> points = points_og;
+
 #ifdef INDEX_TRACKER
-        for (size_t i = 0; i < embeddedPointsPrevPrev.size(); i++)
-            embeddedPointsPrevPrev[embeddedPoints[i].ID] = embeddedPoints[i];
-        embeddedPointsPrevPrev.swap(embeddedPoints);
+        for (size_t i = 0; i < points.size(); i++)
+            points[points_og[i].ID] = points_og[i];
 #endif
 
-        QijTotal_ = 0.0;
+        QTotalCuda qTotalGpu;
+        std::vector<double> qTotalPosBuffer;
 
-        const unsigned numThreads = std::thread::hardware_concurrency();
-        const size_t chunkSize = (points.size() + numThreads - 1) / numThreads;
-
-        std::vector<std::thread> threads;
-        std::vector<double> localTotals(numThreads, 0.0);
-
-        for (unsigned t = 0; t < numThreads; ++t)
+        const int n = static_cast<int>(points.size());
+        qTotalPosBuffer.resize(2 * static_cast<size_t>(n));
+        for (int i = 0; i < n; i++)
         {
-            size_t begin = t * chunkSize;
-            size_t end = std::min(begin + chunkSize, points.size());
-
-            threads.emplace_back(
-                [&, t, begin, end]()
-                {
-                    double threadTotal = 0.0;
-
-                    for (size_t i = begin; i < end; ++i)
-                    {
-                        for (size_t j = 0; j < points.size(); ++j)
-                        {
-                            if (i == j) continue;
-
-                            const TsnePoint2D& point_i = points[i];
-                            const TsnePoint2D& point_j = points[j];
-
-                            glm::dvec2 diff = point_j.position - point_i.position;
-                            double distance_squared = diff.x * diff.x + diff.y * diff.y;
-                            localTotals[t] += 1.0 / (1.0 + distance_squared);
-                        }
-                    }
-                });
+            qTotalPosBuffer[2 * i + 0] = points[i].position.x;
+            qTotalPosBuffer[2 * i + 1] = points[i].position.y;
         }
 
-        for (std::thread& th : threads)
-            th.join();
-
-        QijTotal_ = std::accumulate(localTotals.begin(), localTotals.end(), 0.0);
+        const double QijTotal = qTotalGpu.compute(qTotalPosBuffer.data(), n);
 
         double totalCost = 0.0;
-        for (int k = 0; k < Pmatrix.outerSize();
-             ++k) // https://stackoverflow.com/questions/22421244/eigen-package-iterate-over-row-major-sparse-matrix
+        // https://stackoverflow.com/questions/22421244/eigen-package-iterate-over-row-major-sparse-matrix
+        for (int k = 0; k < Pmatrix.outerSize(); ++k)
         {
             for (Eigen::SparseMatrix<double>::InnerIterator it(Pmatrix, k); it; ++it)
             {
@@ -467,7 +442,7 @@ class TSNE
 
                     glm::dvec2 diff = point_col.position - point_row.position;
                     double distance_squared = diff.x * diff.x + diff.y * diff.y;
-                    double Qij = (1.0 / (1.0 + distance_squared)) / QijTotal_;
+                    double Qij = static_cast<double>(1.0 / (1.0 + distance_squared)) / QijTotal;
 
                     double Pij = it.value();
 
@@ -476,11 +451,8 @@ class TSNE
             }
         }
 
-        std::cout << "totalCost: " << totalCost << std::endl;
-
-#ifdef INDEX_TRACKER
-        nBodySolvers[nBodySelect]->updateTree(embeddedPoints, minPos, maxPos);
-#endif
+        std::cout << "total cost: " << totalCost << std::endl;
+        return totalCost;
     }
 
     void setupEfficientPmatrix()

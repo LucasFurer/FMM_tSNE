@@ -33,6 +33,10 @@ class SolverFMM : public NBodySolver<T>
     void solveNbody(double& total, std::vector<T>& points) override
     {
         traverse_NN(total, points, nodes[0], nodes[0], this->theta * this->theta);
+        // for (int i = nodes[0].first_child_index; i < nodes[0].first_child_index + nodes[0].child_index_amount; ++i)
+        // {
+        //     traverse_NN(total, points, nodes[i], nodes[0], this->theta * this->theta);
+        // }
 
         // when a point-point self interaction happens we dont add any derivative
         // but we do add 1.0 to the normalization which must be compensated for
