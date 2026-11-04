@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FMM_tSNE/tsne/points/tsne_point_2D.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -98,5 +99,64 @@ struct NodeFMM
           first_particle_index{in_first_particle_index},
           particle_index_amount{in_particle_index_amount}
     {
+    }
+
+    void normalize()
+    {
+        double norm_val = 1.0 / M0;
+        // we dont normalize C1
+        field.C2xx *= norm_val;
+        field.C2xy *= norm_val;
+        field.C2yy *= norm_val;
+        field.C3xxx *= norm_val;
+        field.C3xxy *= norm_val;
+        field.C3xyy *= norm_val;
+        field.C3yyy *= norm_val;
+    }
+
+    void translate_to_node(NodeFMM& to)
+    {
+        glm::dvec2 oldZ = to.COM;
+        glm::dvec2 newZ = COM;
+        glm::dvec2 diff = oldZ - newZ;
+
+        double diff_einsum_C2_x = diff.x * field.C2xx + diff.y * field.C2xy;
+        double diff_einsum_C2_y = diff.x * field.C2xy + diff.y * field.C2yy;
+
+        double diff_einsum_C3_xx = diff.x * field.C3xxx + diff.y * field.C3xxy;
+        double diff_einsum_C3_xy = diff.x * field.C3xxy + diff.y * field.C3xyy;
+        double diff_einsum_C3_yy = diff.x * field.C3xyy + diff.y * field.C3yyy;
+
+        double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
+        double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
+
+        to.field += {field.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x,
+                     field.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y,
+                     field.C2xx + diff_einsum_C3_xx,
+                     field.C2xy + diff_einsum_C3_xy,
+                     field.C2yy + diff_einsum_C3_yy,
+                     field.C3xxx,
+                     field.C3xxy,
+                     field.C3xyy,
+                     field.C3yyy};
+    }
+    void translate_to_point(TsnePoint2D& to)
+    {
+        glm::dvec2 x = to.position;
+        glm::dvec2 Z0 = COM;
+        glm::dvec2 diff = to.position - COM;
+
+        double diff_einsum_C2_x = diff.x * field.C2xx + diff.y * field.C2xy;
+        double diff_einsum_C2_y = diff.x * field.C2xy + diff.y * field.C2yy;
+
+        double diff_einsum_C3_xx = diff.x * field.C3xxx + diff.y * field.C3xxy;
+        double diff_einsum_C3_xy = diff.x * field.C3xxy + diff.y * field.C3xyy;
+        double diff_einsum_C3_yy = diff.x * field.C3xyy + diff.y * field.C3yyy;
+
+        double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
+        double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
+
+        to.derivative.x += field.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
+        to.derivative.y += field.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
     }
 };
