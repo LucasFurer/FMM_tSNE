@@ -35,26 +35,15 @@ inline void TSNE_FMM_NN(double& total, NodeFMM& sinkNode, NodeFMM& sourceNode)
     double MB2TildeSum3i0 = R.x * MB2Tilde_xx + R.y * MB2Tilde_xy;
     double MB2TildeSum3i1 = R.x * MB2Tilde_xy + R.y * MB2Tilde_yy;
 
-    sinkNode.C1x += MB0 * (R.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2);
-    sinkNode.C1y += MB0 * (R.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2);
-
-    const double C2xx = MA0 * MB0 * (D1 + R.x * R.x * D2);
-    const double C2xy = MA0 * MB0 * (R.x * R.y * D2);
-    const double C2yy = MA0 * MB0 * (D1 + R.y * R.y * D2);
-
-    sinkNode.C2xx += C2xx;
-    sinkNode.C2xy += C2xy;
-    sinkNode.C2yy += C2yy;
-
-    const double C3xxx = MA0 * MB0 * ((R.x + R.x + R.x) * D2 + R.x * R.x * R.x * D3);
-    const double C3xxy = MA0 * MB0 * ((R.y) * D2 + R.x * R.x * R.y * D3);
-    const double C3xyy = MA0 * MB0 * ((R.x) * D2 + R.x * R.y * R.y * D3);
-    const double C3yyy = MA0 * MB0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3);
-
-    sinkNode.C3xxx += C3xxx;
-    sinkNode.C3xxy += C3xxy;
-    sinkNode.C3xyy += C3xyy;
-    sinkNode.C3yyy += C3yyy;
+    sinkNode.field += {MB0 * (R.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2),
+                       MB0 * (R.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2),
+                       MA0 * MB0 * (D1 + R.x * R.x * D2),
+                       MA0 * MB0 * (R.x * R.y * D2),
+                       MA0 * MB0 * (D1 + R.y * R.y * D2),
+                       MA0 * MB0 * ((R.x + R.x + R.x) * D2 + R.x * R.x * R.x * D3),
+                       MA0 * MB0 * ((R.y) * D2 + R.x * R.x * R.y * D3),
+                       MA0 * MB0 * ((R.x) * D2 + R.x * R.y * R.y * D3),
+                       MA0 * MB0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3)};
 
     // add totals for both interactions
     total += (sinkNode.M0 * sourceNode.M0) / rS;
@@ -90,10 +79,9 @@ inline void TSNE_FMM_PN(double& total, TsnePoint2D& sinkPoint, NodeFMM& sourceNo
     double MB2TildeSum3i0 = R.x * MB2Tilde_xx + R.y * MB2Tilde_xy;
     double MB2TildeSum3i1 = R.x * MB2Tilde_xy + R.y * MB2Tilde_yy;
 
-    sinkPoint.derivative.x +=
-        MB0 * (R.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2);
-    sinkPoint.derivative.y +=
-        MB0 * (R.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2);
+    sinkPoint.derivative +=
+        glm::dvec2{MB0 * (R.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2),
+                   MB0 * (R.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2)};
 
     total += sourceNode.M0 / rS;
 }
@@ -116,26 +104,15 @@ inline void TSNE_FMM_NP(double& total, NodeFMM& sinkNode, TsnePoint2D& sourcePoi
     double MA0 = sinkNode.M0;
     double MB0 = 1.0;
 
-    sinkNode.C1x += (R.x * D1);
-    sinkNode.C1y += (R.y * D1);
-
-    const double C2xx = MA0 * (D1 + R.x * R.x * D2);
-    const double C2xy = MA0 * (R.x * R.y * D2);
-    const double C2yy = MA0 * (D1 + R.y * R.y * D2);
-
-    sinkNode.C2xx += C2xx;
-    sinkNode.C2xy += C2xy;
-    sinkNode.C2yy += C2yy;
-
-    const double C3xxx = MA0 * ((R.x + R.x + R.x) * D2 + R.x * R.x * R.x * D3);
-    const double C3xxy = MA0 * ((R.y) * D2 + R.x * R.x * R.y * D3);
-    const double C3xyy = MA0 * ((R.x) * D2 + R.x * R.y * R.y * D3);
-    const double C3yyy = MA0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3);
-
-    sinkNode.C3xxx += C3xxx;
-    sinkNode.C3xxy += C3xxy;
-    sinkNode.C3xyy += C3xyy;
-    sinkNode.C3yyy += C3yyy;
+    sinkNode.field += {(R.x * D1),
+                       (R.y * D1),
+                       MA0 * (D1 + R.x * R.x * D2),
+                       MA0 * (R.x * R.y * D2),
+                       MA0 * (D1 + R.y * R.y * D2),
+                       MA0 * ((R.x + R.x + R.x) * D2 + R.x * R.x * R.x * D3),
+                       MA0 * ((R.y) * D2 + R.x * R.x * R.y * D3),
+                       MA0 * ((R.x) * D2 + R.x * R.y * R.y * D3),
+                       MA0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3)};
 
     total += sinkNode.M0 / rS;
 }

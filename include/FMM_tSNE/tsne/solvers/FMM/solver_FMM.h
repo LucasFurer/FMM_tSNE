@@ -45,13 +45,13 @@ class SolverFMM : public NBodySolver<T>
         total -= static_cast<double>(points.size());
 
         double one_over_M0 = 1.0 / nodes[0].M0;
-        nodes[0].C2xx *= one_over_M0;
-        nodes[0].C2xy *= one_over_M0;
-        nodes[0].C2yy *= one_over_M0;
-        nodes[0].C3xxx *= one_over_M0;
-        nodes[0].C3xxy *= one_over_M0;
-        nodes[0].C3xyy *= one_over_M0;
-        nodes[0].C3yyy *= one_over_M0;
+        nodes[0].field.C2xx *= one_over_M0;
+        nodes[0].field.C2xy *= one_over_M0;
+        nodes[0].field.C2yy *= one_over_M0;
+        nodes[0].field.C3xxx *= one_over_M0;
+        nodes[0].field.C3xxy *= one_over_M0;
+        nodes[0].field.C3xyy *= one_over_M0;
+        nodes[0].field.C3yyy *= one_over_M0;
         applyForces(points, nodes[0]);
     }
 
@@ -361,37 +361,37 @@ class SolverFMM : public NBodySolver<T>
             for (int child = node.first_child_index; child < node.first_child_index + node.child_index_amount; child++)
             {
                 double one_over_M0 = 1.0 / nodes[child].M0;
-                nodes[child].C2xx *= one_over_M0;
-                nodes[child].C2xy *= one_over_M0;
-                nodes[child].C2yy *= one_over_M0;
-                nodes[child].C3xxx *= one_over_M0;
-                nodes[child].C3xxy *= one_over_M0;
-                nodes[child].C3xyy *= one_over_M0;
-                nodes[child].C3yyy *= one_over_M0;
+                nodes[child].field.C2xx *= one_over_M0;
+                nodes[child].field.C2xy *= one_over_M0;
+                nodes[child].field.C2yy *= one_over_M0;
+                nodes[child].field.C3xxx *= one_over_M0;
+                nodes[child].field.C3xxy *= one_over_M0;
+                nodes[child].field.C3xyy *= one_over_M0;
+                nodes[child].field.C3yyy *= one_over_M0;
 
                 glm::dvec2 oldZ = nodes[child].COM;
                 glm::dvec2 newZ = node.COM;
                 glm::dvec2 diff = oldZ - newZ;
 
-                double diff_einsum_C2_x = diff.x * node.C2xx + diff.y * node.C2xy;
-                double diff_einsum_C2_y = diff.x * node.C2xy + diff.y * node.C2yy;
+                double diff_einsum_C2_x = diff.x * node.field.C2xx + diff.y * node.field.C2xy;
+                double diff_einsum_C2_y = diff.x * node.field.C2xy + diff.y * node.field.C2yy;
 
-                double diff_einsum_C3_xx = diff.x * node.C3xxx + diff.y * node.C3xxy;
-                double diff_einsum_C3_xy = diff.x * node.C3xxy + diff.y * node.C3xyy;
-                double diff_einsum_C3_yy = diff.x * node.C3xyy + diff.y * node.C3yyy;
+                double diff_einsum_C3_xx = diff.x * node.field.C3xxx + diff.y * node.field.C3xxy;
+                double diff_einsum_C3_xy = diff.x * node.field.C3xxy + diff.y * node.field.C3xyy;
+                double diff_einsum_C3_yy = diff.x * node.field.C3xyy + diff.y * node.field.C3yyy;
 
                 double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
                 double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
 
-                nodes[child].C1x += node.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
-                nodes[child].C1y += node.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
-                nodes[child].C2xx += node.C2xx + diff_einsum_C3_xx;
-                nodes[child].C2xy += node.C2xy + diff_einsum_C3_xy;
-                nodes[child].C2yy += node.C2yy + diff_einsum_C3_yy;
-                nodes[child].C3xxx += node.C3xxx;
-                nodes[child].C3xxy += node.C3xxy;
-                nodes[child].C3xyy += node.C3xyy;
-                nodes[child].C3yyy += node.C3yyy;
+                nodes[child].field.C1x += node.field.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
+                nodes[child].field.C1y += node.field.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
+                nodes[child].field.C2xx += node.field.C2xx + diff_einsum_C3_xx;
+                nodes[child].field.C2xy += node.field.C2xy + diff_einsum_C3_xy;
+                nodes[child].field.C2yy += node.field.C2yy + diff_einsum_C3_yy;
+                nodes[child].field.C3xxx += node.field.C3xxx;
+                nodes[child].field.C3xxy += node.field.C3xxy;
+                nodes[child].field.C3xyy += node.field.C3xyy;
+                nodes[child].field.C3yyy += node.field.C3yyy;
 
                 applyForces(points, nodes[child]);
             }
@@ -405,18 +405,18 @@ class SolverFMM : public NBodySolver<T>
                 glm::dvec2 Z0 = node.COM;
                 glm::dvec2 diff = points[point].position - node.COM;
 
-                double diff_einsum_C2_x = diff.x * node.C2xx + diff.y * node.C2xy;
-                double diff_einsum_C2_y = diff.x * node.C2xy + diff.y * node.C2yy;
+                double diff_einsum_C2_x = diff.x * node.field.C2xx + diff.y * node.field.C2xy;
+                double diff_einsum_C2_y = diff.x * node.field.C2xy + diff.y * node.field.C2yy;
 
-                double diff_einsum_C3_xx = diff.x * node.C3xxx + diff.y * node.C3xxy;
-                double diff_einsum_C3_xy = diff.x * node.C3xxy + diff.y * node.C3xyy;
-                double diff_einsum_C3_yy = diff.x * node.C3xyy + diff.y * node.C3yyy;
+                double diff_einsum_C3_xx = diff.x * node.field.C3xxx + diff.y * node.field.C3xxy;
+                double diff_einsum_C3_xy = diff.x * node.field.C3xxy + diff.y * node.field.C3xyy;
+                double diff_einsum_C3_yy = diff.x * node.field.C3xyy + diff.y * node.field.C3yyy;
 
                 double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
                 double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
 
-                points[point].derivative.x += node.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
-                points[point].derivative.y += node.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
+                points[point].derivative.x += node.field.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
+                points[point].derivative.y += node.field.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
             }
         }
     }

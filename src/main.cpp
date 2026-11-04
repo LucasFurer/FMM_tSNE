@@ -11,7 +11,7 @@ int main()
 
     TsneTest tsne_test{};
     tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
-                                10000,          // data_size
+                                1000,           // data_size
                                 30.0f,          // perplexity
                                 1000,           // iteration_amount
                                 0.75f,          // theta
@@ -38,7 +38,7 @@ int main()
     // );
 
     // tsne_test.calculationtimeErrorTSNE("MNIST_digits", // data_set
-    //                                    70000,          // data_size
+    //                                    10000,          // data_size
     //                                    30.0f,          // perplexity
     //                                    1000,           // iteration_amount
     //                                    std::vector<double>{0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0},  // thetas
@@ -109,8 +109,8 @@ int main()
     Shader shader_tsne = Shader((std::filesystem::current_path().string() + "/shaders/shader_tsne.vs").c_str(),
                                 (std::filesystem::current_path().string() + "/shaders/shader_tsne.fs").c_str());
 
-    TSNE_buffers tsne(1.0,            // min_theta
-                      1.0,            // max_theta
+    TSNE_buffers tsne(0.7,            // min_theta
+                      0.7,            // max_theta
                       1.25,           // cell_size
                       "MNIST_digits", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
                       70000,          // data_size

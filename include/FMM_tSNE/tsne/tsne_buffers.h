@@ -91,7 +91,7 @@ class TSNE_buffers final : public TSNE
     {
         if (iteration_counter == 1)
         {
-            TSNE::costFunction(this->embeddedPoints, this->Pmatrix);
+            // TSNE::costFunction(this->embeddedPoints, this->Pmatrix);
             thousand_iteration_timer.startTimer();
         }
 
