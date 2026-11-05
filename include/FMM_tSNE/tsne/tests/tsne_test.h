@@ -52,11 +52,13 @@ class TsneTest
             tsne.nBodySolvers, std::back_inserter(candidates), [](const auto& pair) { return pair.first; });
 
         std::map<std::string, std::vector<double>> errors;
+        std::map<std::string, std::vector<double>> times;
         std::map<std::string, std::vector<int>> iteration_counts;
 
         for (std::string candidate : candidates)
         {
             errors.insert({candidate, std::vector<double>(iteration_amount, 0.0)});
+            times.insert({candidate, std::vector<double>(iteration_amount, 0.0)});
             iteration_counts.insert({candidate, std::vector<int>(iteration_amount, 0)});
         }
 
@@ -87,6 +89,7 @@ class TsneTest
                 tsne.resetDeriv();
                 tsne.iteration_counter = t;
                 tsne.nBodySelect = candidate;
+                double timeBefore = glfwGetTime();
                 tsne.nBodySolvers[candidate]->updateTree(tsne.embeddedPoints, tsne.minPos, tsne.maxPos);
                 // tsne.updateDerivative();
                 tsne.resetDeriv();
@@ -94,6 +97,7 @@ class TsneTest
                 tsne.updateRepulsiveNoNorm();
                 fast_solution_rep = tsne.embeddedPoints;
                 errors[candidate][t] = getNMAE(naive_solution_rep, fast_solution_rep);
+                times[candidate][t] += glfwGetTime() - timeBefore;
                 iteration_counts[candidate][t] = t;
             }
 
@@ -110,13 +114,16 @@ class TsneTest
                                               std::to_string(data_size) /
                                               ("perp" + std::to_string(static_cast<int>(perplexity_value)));
 
+        std::string methodString =
+            ("_point" + std::to_string(data_size) + "_perp" + std::to_string(static_cast<int>(perplexity_value)) +
+             "_theta" + fltToStr(theta) + "_dataset" + dataset_type + ".csv");
+
         for (std::string candidate : candidates)
         {
-            std::filesystem::path methodPath =
-                projectFolder / ("tsneErrorTimestep" + candidate + "_point" + std::to_string(data_size) + "_perp" +
-                                 std::to_string(static_cast<int>(perplexity_value)) + "_theta" + fltToStr(theta) +
-                                 "_dataset" + dataset_type + ".csv");
-            writeToFile(iteration_counts[candidate], errors[candidate], methodPath);
+            std::filesystem::path methodPath_error = projectFolder / ("tsneErrorTimestep" + candidate + methodString);
+            std::filesystem::path methodPath_time = projectFolder / ("tsneTimeTimestep" + candidate + methodString);
+            writeToFile(iteration_counts[candidate], errors[candidate], methodPath_error);
+            writeToFile(iteration_counts[candidate], times[candidate], methodPath_time);
         }
     }
 

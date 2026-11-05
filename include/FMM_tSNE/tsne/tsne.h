@@ -99,8 +99,8 @@ class TSNE
         int max_children_per_node = 16;
         // nBodySolvers["naive"] = new NBodySolverNaive<TsnePoint2D>(&TSNEnaiveKernel);
         nBodySolvers["naive"] = new NBodySolverNaiveCUDA<TsnePoint2D>();
-        nBodySolvers["BH"] = new NBodySolverTree<TsnePoint2D, Policy_BH>(max_children_per_node, max_theta);
-        nBodySolvers["BH"]->updateTree(embeddedPoints, minPos, maxPos);
+        // nBodySolvers["BH"] = new NBodySolverTree<TsnePoint2D, Policy_BH>(max_children_per_node, max_theta);
+        // nBodySolvers["BH"]->updateTree(embeddedPoints, minPos, maxPos);
         // nBodySolvers["BHR"] =
         //     new NBodySolverBHR<TsnePoint2D>(&TSNEBHRNPKernel, &TSNEBHRPPKernel, max_children_per_node, max_theta);
         // nBodySolvers["BHR"]->updateTree(embeddedPoints, minPos, maxPos);
@@ -197,7 +197,7 @@ class TSNE
 
         thetaFunction();
 
-        double accelerationRate = iteration_counter < 250 ? 0.5 : 0.8;
+        double accelerationRate = iteration_counter < 250 ? 0.5 : 0.8; // 250
 
         for (int i = 0; i < embeddedPoints.size(); i++)
         {

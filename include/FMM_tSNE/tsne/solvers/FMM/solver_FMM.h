@@ -40,7 +40,8 @@ class SolverFMM : public NBodySolver<T>
         // so we subtract it here instead of preventing self interaction in the traversal
         total -= static_cast<double>(points.size());
 
-        nodes[0].normalize();
+        nodes[0].field.normalize(1.0 / nodes[0].M0);
+        // nodes[0].normalize();
         applyForces(points, nodes[0]);
     }
 
@@ -69,7 +70,12 @@ class SolverFMM : public NBodySolver<T>
     }
 
   private:
-    void traverse_NN(double& total, std::vector<T>& points, NodeFMM& node_sink, NodeFMM& node_source, double theta_sq)
+    void traverse_NN(double& total,
+                     std::vector<T>& points,
+                     NodeFMM& node_sink,
+                     // MF& inherited_field,
+                     NodeFMM& node_source,
+                     double theta_sq)
     {
         glm::dvec2 diff = node_sink.COM - node_source.COM;
         double length_sum = (node_sink.BB_length + node_source.BB_length);
@@ -316,14 +322,9 @@ class SolverFMM : public NBodySolver<T>
                 {
                     glm::dvec2 relativeCoord = nodes[node.first_child_index + c].COM - nodes[n].COM;
 
-                    // hmmm im not sure about nodes[node.first_child_index + c].M0 CHECK the algorithm
-                    // again!!!!!!!!!!!!!!!!!!!!!!!
-                    // nodes[n].M2xx += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.x;
-                    // nodes[n].M2xy += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.y;
-                    // nodes[n].M2yy += nodes[node.first_child_index + c].M0 * relativeCoord.y * relativeCoord.y;
-                    nodes[n].M2xx += relativeCoord.x * relativeCoord.x;
-                    nodes[n].M2xy += relativeCoord.x * relativeCoord.y;
-                    nodes[n].M2yy += relativeCoord.y * relativeCoord.y;
+                    nodes[n].M2xx += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.x;
+                    nodes[n].M2xy += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.y;
+                    nodes[n].M2yy += nodes[node.first_child_index + c].M0 * relativeCoord.y * relativeCoord.y;
 
                     nodes[n].M2xx += nodes[node.first_child_index + c].M2xx;
                     nodes[n].M2xy += nodes[node.first_child_index + c].M2xy;
@@ -339,9 +340,11 @@ class SolverFMM : public NBodySolver<T>
         {
             for (int child = node.first_child_index; child < node.first_child_index + node.child_index_amount; child++)
             {
-                nodes[child].normalize();
+                nodes[child].field.normalize(1.0 / nodes[child].M0);
+                // nodes[child].normalize();
 
-                node.translate_to_node(nodes[child]);
+                MF::translate_from_to_node(node, nodes[child]);
+                // node.translate_to_node(nodes[child]);
 
                 applyForces(points, nodes[child]);
             }
@@ -351,7 +354,8 @@ class SolverFMM : public NBodySolver<T>
             for (int point = node.first_particle_index; point < node.first_particle_index + node.particle_index_amount;
                  point++)
             {
-                node.translate_to_point(points[point]);
+                MF::translate_from_to_point(node, points[point]);
+                // node.translate_to_point(points[point]);
             }
         }
     }

@@ -1,8 +1,11 @@
 #pragma once
 
 #include "FMM_tSNE/tsne/points/tsne_point_2D.h"
+#include "glm/ext/vector_double2.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
+
+struct NodeFMM;
 
 struct MF
 {
@@ -64,6 +67,23 @@ struct MF
 
         return *this;
     }
+
+    void normalize(double norm_val)
+    {
+        // double norm_val = 1.0 / M0;
+        // we dont normalize C1
+        C2xx *= norm_val;
+        C2xy *= norm_val;
+        C2yy *= norm_val;
+        C3xxx *= norm_val;
+        C3xxy *= norm_val;
+        C3xyy *= norm_val;
+        C3yyy *= norm_val;
+    }
+
+    static void translate_from_to_node(NodeFMM& from, NodeFMM& to);
+
+    static void translate_from_to_point(NodeFMM& from, TsnePoint2D& to);
 };
 
 struct NodeFMM
@@ -84,15 +104,6 @@ struct NodeFMM
     unsigned char child_index_amount; // amount of children (max is 4)
 
     MF field{};
-    // double C1x{};
-    // double C1y{};
-    // double C2xx{};
-    // double C2xy{};
-    // double C2yy{};
-    // double C3xxx{};
-    // double C3xxy{};
-    // double C3xyy{};
-    // double C3yyy{};
 
     NodeFMM(double in_BB_length, unsigned int in_first_particle_index, unsigned int in_particle_index_amount)
         : BB_length{in_BB_length},
@@ -100,63 +111,51 @@ struct NodeFMM
           particle_index_amount{in_particle_index_amount}
     {
     }
-
-    void normalize()
-    {
-        double norm_val = 1.0 / M0;
-        // we dont normalize C1
-        field.C2xx *= norm_val;
-        field.C2xy *= norm_val;
-        field.C2yy *= norm_val;
-        field.C3xxx *= norm_val;
-        field.C3xxy *= norm_val;
-        field.C3xyy *= norm_val;
-        field.C3yyy *= norm_val;
-    }
-
-    void translate_to_node(NodeFMM& to)
-    {
-        glm::dvec2 oldZ = to.COM;
-        glm::dvec2 newZ = COM;
-        glm::dvec2 diff = oldZ - newZ;
-
-        double diff_einsum_C2_x = diff.x * field.C2xx + diff.y * field.C2xy;
-        double diff_einsum_C2_y = diff.x * field.C2xy + diff.y * field.C2yy;
-
-        double diff_einsum_C3_xx = diff.x * field.C3xxx + diff.y * field.C3xxy;
-        double diff_einsum_C3_xy = diff.x * field.C3xxy + diff.y * field.C3xyy;
-        double diff_einsum_C3_yy = diff.x * field.C3xyy + diff.y * field.C3yyy;
-
-        double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
-        double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
-
-        to.field += {field.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x,
-                     field.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y,
-                     field.C2xx + diff_einsum_C3_xx,
-                     field.C2xy + diff_einsum_C3_xy,
-                     field.C2yy + diff_einsum_C3_yy,
-                     field.C3xxx,
-                     field.C3xxy,
-                     field.C3xyy,
-                     field.C3yyy};
-    }
-    void translate_to_point(TsnePoint2D& to)
-    {
-        glm::dvec2 x = to.position;
-        glm::dvec2 Z0 = COM;
-        glm::dvec2 diff = to.position - COM;
-
-        double diff_einsum_C2_x = diff.x * field.C2xx + diff.y * field.C2xy;
-        double diff_einsum_C2_y = diff.x * field.C2xy + diff.y * field.C2yy;
-
-        double diff_einsum_C3_xx = diff.x * field.C3xxx + diff.y * field.C3xxy;
-        double diff_einsum_C3_xy = diff.x * field.C3xxy + diff.y * field.C3xyy;
-        double diff_einsum_C3_yy = diff.x * field.C3xyy + diff.y * field.C3yyy;
-
-        double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
-        double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
-
-        to.derivative.x += field.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
-        to.derivative.y += field.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
-    }
 };
+
+inline void MF::translate_from_to_node(NodeFMM& from, NodeFMM& to)
+{
+    glm::dvec2 oldZ = to.COM;
+    glm::dvec2 newZ = from.COM;
+    glm::dvec2 diff = oldZ - newZ;
+
+    double diff_einsum_C2_x = diff.x * from.field.C2xx + diff.y * from.field.C2xy;
+    double diff_einsum_C2_y = diff.x * from.field.C2xy + diff.y * from.field.C2yy;
+
+    double diff_einsum_C3_xx = diff.x * from.field.C3xxx + diff.y * from.field.C3xxy;
+    double diff_einsum_C3_xy = diff.x * from.field.C3xxy + diff.y * from.field.C3xyy;
+    double diff_einsum_C3_yy = diff.x * from.field.C3xyy + diff.y * from.field.C3yyy;
+
+    double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
+    double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
+
+    to.field += {from.field.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x,
+                 from.field.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y,
+                 from.field.C2xx + diff_einsum_C3_xx,
+                 from.field.C2xy + diff_einsum_C3_xy,
+                 from.field.C2yy + diff_einsum_C3_yy,
+                 from.field.C3xxx,
+                 from.field.C3xxy,
+                 from.field.C3xyy,
+                 from.field.C3yyy};
+}
+
+inline void MF::translate_from_to_point(NodeFMM& from, TsnePoint2D& to)
+{
+    glm::dvec2 x = to.position;
+    glm::dvec2 Z0 = from.COM;
+    glm::dvec2 diff = to.position - from.COM;
+
+    double diff_einsum_C2_x = diff.x * from.field.C2xx + diff.y * from.field.C2xy;
+    double diff_einsum_C2_y = diff.x * from.field.C2xy + diff.y * from.field.C2yy;
+
+    double diff_einsum_C3_xx = diff.x * from.field.C3xxx + diff.y * from.field.C3xxy;
+    double diff_einsum_C3_xy = diff.x * from.field.C3xxy + diff.y * from.field.C3xyy;
+    double diff_einsum_C3_yy = diff.x * from.field.C3xyy + diff.y * from.field.C3yyy;
+
+    double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
+    double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
+
+    to.derivative.x += from.field.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
+    to.derivative.y += from.field.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
+}

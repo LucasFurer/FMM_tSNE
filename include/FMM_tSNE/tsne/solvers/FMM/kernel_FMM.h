@@ -4,6 +4,7 @@
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+// inline void TSNE_FMM_NN(double& total, NodeFMM& sinkNode, MF& sinkField, NodeFMM& sourceNode)
 inline void TSNE_FMM_NN(double& total, NodeFMM& sinkNode, NodeFMM& sourceNode)
 {
     glm::dvec2 R = sinkNode.COM - sourceNode.COM;
@@ -86,6 +87,7 @@ inline void TSNE_FMM_PN(double& total, TsnePoint2D& sinkPoint, NodeFMM& sourceNo
     total += sourceNode.M0 / rS;
 }
 
+// inline void TSNE_FMM_NP(double& total, NodeFMM& sinkNode, MF& sinkField, TsnePoint2D& sourcePoint)
 inline void TSNE_FMM_NP(double& total, NodeFMM& sinkNode, TsnePoint2D& sourcePoint)
 {
     glm::dvec2 R = sinkNode.COM - sourcePoint.position;
