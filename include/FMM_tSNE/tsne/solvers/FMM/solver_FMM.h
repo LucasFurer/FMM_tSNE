@@ -33,16 +33,12 @@ class SolverFMM : public NBodySolver<T>
 
     void solveNbody(double& total, std::vector<T>& points) override
     {
-        traverse_NN(total, points, nodes[0], nodes[0], this->theta * this->theta);
+        traverse_NN(total, points, nodes[0], {}, {0u}, {}, this->theta * this->theta);
         // when a point-point self interaction happens we dont add any derivative
         // but we do add 1.0 to the normalization which must be compensated for
         // every point will self interact exactly once
         // so we subtract it here instead of preventing self interaction in the traversal
         total -= static_cast<double>(points.size());
-
-        nodes[0].field.normalize(1.0 / nodes[0].M0);
-        // nodes[0].normalize();
-        applyForces(points, nodes[0]);
     }
 
     void updateTree(std::vector<T>& points, glm::dvec2 minPos, glm::dvec2 maxPos) override
@@ -73,52 +69,140 @@ class SolverFMM : public NBodySolver<T>
     void traverse_NN(double& total,
                      std::vector<T>& points,
                      NodeFMM& node_sink,
-                     // MF& inherited_field,
-                     NodeFMM& node_source,
+                     const MF& inherited_field,
+                     const std::vector<unsigned>& node_sources,
+                     const std::vector<unsigned>& point_sources,
                      double theta_sq)
     {
-        glm::dvec2 diff = node_sink.COM - node_source.COM;
-        double length_sum = (node_sink.BB_length + node_source.BB_length);
+        const bool sink_is_leaf = node_sink.child_index_amount == 0;
+
+        MF accumilated_field{}; // what this node accumulates itself (unnormalized)
+        std::vector<unsigned> child_node_sources;
+        std::vector<unsigned> child_point_sources;
+
+        // process points
+        for (unsigned p : point_sources)
+        {
+            interaction_node_point(total, points, node_sink, accumilated_field, p, child_point_sources, theta_sq);
+        }
+
+        // process nodes
+        for (unsigned n : node_sources)
+        {
+            NodeFMM& node_source = nodes[n];
+
+            glm::dvec2 diff = node_sink.COM - node_source.COM;
+            double length_sum = (node_sink.BB_length + node_source.BB_length);
+
+            // efficient theta check
+            if (glm::dot(diff, diff) * theta_sq > length_sum * length_sum)
+            {
+                TSNE_FMM_NN(total, node_sink, accumilated_field, node_source);
+            }
+            // if A is leaf then do PN interaction with B for every point in A
+            else if (node_sink.child_index_amount == 0)
+            {
+                for (unsigned firstNodePointIndex = node_sink.first_particle_index;
+                     firstNodePointIndex < node_sink.first_particle_index + node_sink.particle_index_amount;
+                     firstNodePointIndex++)
+                {
+                    // translate inherited field to point
+                    traverse_PN(total, points, points[firstNodePointIndex], node_source, theta_sq);
+                }
+            }
+            // if B is leaf then do PN interaction with A for every point in B
+            else if (node_source.child_index_amount == 0)
+            {
+                for (unsigned secondNodePointIndex = node_source.first_particle_index;
+                     secondNodePointIndex < node_source.first_particle_index + node_source.particle_index_amount;
+                     secondNodePointIndex++)
+                {
+                    interaction_node_point(total,
+                                           points,
+                                           node_sink,
+                                           accumilated_field,
+                                           secondNodePointIndex,
+                                           child_point_sources,
+                                           theta_sq);
+                }
+            }
+            // if B and A are not leaf then make all children interact
+            else
+            {
+                for (unsigned secondNodeChildIndex = node_source.first_child_index;
+                     secondNodeChildIndex < node_source.first_child_index + node_source.child_index_amount;
+                     secondNodeChildIndex++)
+                {
+                    child_node_sources.push_back(secondNodeChildIndex);
+                }
+            }
+        }
+
+        // accumilated_field is now done so we normalize it and add to inherited
+        accumilated_field.normalize(1.0 / node_sink.M0);
+        accumilated_field += inherited_field;
+
+        if (sink_is_leaf)
+        {
+            for (unsigned firstNodePointIndex = node_sink.first_particle_index;
+                 firstNodePointIndex < node_sink.first_particle_index + node_sink.particle_index_amount;
+                 firstNodePointIndex++)
+            {
+                TsnePoint2D& point = points[firstNodePointIndex];
+                point.derivative += accumilated_field.translate_field_from_to_point(node_sink.COM, point.position);
+            }
+        }
+        else
+        {
+            for (unsigned c{node_sink.first_child_index};
+                 c < node_sink.first_child_index + node_sink.child_index_amount;
+                 ++c)
+            {
+                NodeFMM& node_sink_child = nodes[c];
+
+                traverse_NN(total,
+                            points,
+                            node_sink_child,
+                            accumilated_field.translate_field_from_to_node(node_sink.COM, node_sink_child.COM),
+                            child_node_sources,
+                            child_point_sources,
+                            theta_sq);
+            }
+        }
+    }
+
+    void interaction_node_point(double& total,
+                                std::vector<TsnePoint2D>& points,
+                                NodeFMM& node_sink,
+                                MF& accumilated_field,
+                                unsigned point_source_index,
+                                std::vector<unsigned>& child_point_sources,
+                                double theta_sq)
+    {
+        TsnePoint2D& point_source = points[point_source_index];
+
+        glm::dvec2 diff = point_source.position - node_sink.COM;
+        double length_sum = node_sink.BB_length;
 
         // efficient theta check
         if (glm::dot(diff, diff) * theta_sq > length_sum * length_sum)
         {
-            TSNE_FMM_NN(total, node_sink, node_source);
+            TSNE_FMM_NP(total, node_sink, accumilated_field, point_source);
         }
-        // if A is leaf then do PN interaction with B for every point in A
+        // if node is leaf then do PP interaction with point for every point in node
         else if (node_sink.child_index_amount == 0)
         {
-            for (int firstNodePointIndex = node_sink.first_particle_index;
-                 firstNodePointIndex < node_sink.first_particle_index + node_sink.particle_index_amount;
-                 firstNodePointIndex++)
-            {
-                traverse_PN(total, points, points[firstNodePointIndex], node_source, theta_sq);
-            }
-        }
-        // if B is leaf then do PN interaction with A for every point in B
-        else if (node_source.child_index_amount == 0)
-        {
-            for (int secondNodePointIndex = node_source.first_particle_index;
-                 secondNodePointIndex < node_source.first_particle_index + node_source.particle_index_amount;
+            for (unsigned secondNodePointIndex = node_sink.first_particle_index;
+                 secondNodePointIndex < node_sink.first_particle_index + node_sink.particle_index_amount;
                  secondNodePointIndex++)
             {
-                traverse_NP(total, points, node_sink, points[secondNodePointIndex], theta_sq);
+                TSNE_FMM_PP(total, points[secondNodePointIndex], point_source);
             }
         }
-        // if B and A are not leaf then make all children interact
+        // if B is not leaf then make all children interact with point
         else
         {
-            for (int firstNodeChildIndex = node_sink.first_child_index;
-                 firstNodeChildIndex < node_sink.first_child_index + node_sink.child_index_amount;
-                 firstNodeChildIndex++)
-            {
-                for (int secondNodeChildIndex = node_source.first_child_index;
-                     secondNodeChildIndex < node_source.first_child_index + node_source.child_index_amount;
-                     secondNodeChildIndex++)
-                {
-                    traverse_NN(total, points, nodes[firstNodeChildIndex], nodes[secondNodeChildIndex], theta_sq);
-                }
-            }
+            child_point_sources.push_back(point_source_index);
         }
     }
 
@@ -135,7 +219,7 @@ class SolverFMM : public NBodySolver<T>
         // if node is leaf then do PP interaction with point for every point in node
         else if (node.child_index_amount == 0)
         {
-            for (int secondNodePointIndex = node.first_particle_index;
+            for (unsigned secondNodePointIndex = node.first_particle_index;
                  secondNodePointIndex < node.first_particle_index + node.particle_index_amount;
                  secondNodePointIndex++)
             {
@@ -145,43 +229,11 @@ class SolverFMM : public NBodySolver<T>
         // if B is not leaf then make all children interact with point
         else
         {
-            for (int secondNodeChildIndex = node.first_child_index;
+            for (unsigned secondNodeChildIndex = node.first_child_index;
                  secondNodeChildIndex < node.first_child_index + node.child_index_amount;
                  secondNodeChildIndex++)
             {
                 traverse_PN(total, points, point, nodes[secondNodeChildIndex], theta_sq);
-            }
-        }
-    }
-
-    void traverse_NP(double& total, std::vector<T>& points, NodeFMM& node, T& point, double theta_sq)
-    {
-        glm::dvec2 diff = point.position - node.COM;
-        double length_sum = node.BB_length;
-
-        // efficient theta check
-        if (glm::dot(diff, diff) * theta_sq > length_sum * length_sum)
-        {
-            TSNE_FMM_NP(total, node, point);
-        }
-        // if node is leaf then do PP interaction with point for every point in node
-        else if (node.child_index_amount == 0)
-        {
-            for (int secondNodePointIndex = node.first_particle_index;
-                 secondNodePointIndex < node.first_particle_index + node.particle_index_amount;
-                 secondNodePointIndex++)
-            {
-                TSNE_FMM_PP(total, points[secondNodePointIndex], point);
-            }
-        }
-        // if B is not leaf then make all children interact with point
-        else
-        {
-            for (int secondNodeChildIndex = node.first_child_index;
-                 secondNodeChildIndex < node.first_child_index + node.child_index_amount;
-                 secondNodeChildIndex++)
-            {
-                traverse_NP(total, points, nodes[secondNodeChildIndex], point, theta_sq);
             }
         }
     }
@@ -330,32 +382,6 @@ class SolverFMM : public NBodySolver<T>
                     nodes[n].M2xy += nodes[node.first_child_index + c].M2xy;
                     nodes[n].M2yy += nodes[node.first_child_index + c].M2yy;
                 }
-            }
-        }
-    }
-
-    void applyForces(std::vector<T>& points, NodeFMM& node)
-    {
-        if (node.child_index_amount != 0)
-        {
-            for (int child = node.first_child_index; child < node.first_child_index + node.child_index_amount; child++)
-            {
-                nodes[child].field.normalize(1.0 / nodes[child].M0);
-                // nodes[child].normalize();
-
-                MF::translate_from_to_node(node, nodes[child]);
-                // node.translate_to_node(nodes[child]);
-
-                applyForces(points, nodes[child]);
-            }
-        }
-        else
-        {
-            for (int point = node.first_particle_index; point < node.first_particle_index + node.particle_index_amount;
-                 point++)
-            {
-                MF::translate_from_to_point(node, points[point]);
-                // node.translate_to_point(points[point]);
             }
         }
     }
