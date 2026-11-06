@@ -23,6 +23,9 @@ class SolverFMM : public NBodySolver<T>
     std::vector<unsigned char> depths;  // depth of the nodes parallel to 'nodes'
     std::vector<glm::dvec2> BB_centres; // centres of the nodes parrallel to 'nodes'
 
+    std::vector<unsigned> node_stack;
+    std::vector<unsigned> point_stack;
+
     SolverFMM() = default;
 
     SolverFMM(int initMaxChildren, double initTheta)
@@ -33,7 +36,10 @@ class SolverFMM : public NBodySolver<T>
 
     void solveNbody(double& total, std::vector<T>& points) override
     {
-        traverse_NN(total, points, nodes[0], {}, {0u}, {}, this->theta * this->theta);
+        node_stack.clear();
+        point_stack.clear();
+        node_stack.push_back(0u);
+        traverse_NN(total, points, nodes[0], {}, 0, 1, 0, 0, this->theta * this->theta);
         // when a point-point self interaction happens we dont add any derivative
         // but we do add 1.0 to the normalization which must be compensated for
         // every point will self interact exactly once
@@ -70,26 +76,27 @@ class SolverFMM : public NBodySolver<T>
                      std::vector<T>& points,
                      NodeFMM& node_sink,
                      const MF& inherited_field,
-                     const std::vector<unsigned>& node_sources,
-                     const std::vector<unsigned>& point_sources,
+                     const size_t node_sources_begin,
+                     const size_t node_sources_end,
+                     const size_t point_sources_begin,
+                     const size_t point_sources_end,
                      double theta_sq)
     {
-        const bool sink_is_leaf = node_sink.child_index_amount == 0;
+        const size_t child_node_sources_begin = node_stack.size();
+        const size_t child_point_sources_begin = point_stack.size();
 
         MF accumilated_field{}; // what this node accumulates itself (unnormalized)
-        std::vector<unsigned> child_node_sources;
-        std::vector<unsigned> child_point_sources;
 
         // process points
-        for (unsigned p : point_sources)
+        for (size_t p{point_sources_begin}; p < point_sources_end; ++p)
         {
-            interaction_node_point(total, points, node_sink, accumilated_field, p, child_point_sources, theta_sq);
+            interaction_node_point(total, points, node_sink, accumilated_field, point_stack[p], theta_sq);
         }
 
         // process nodes
-        for (unsigned n : node_sources)
+        for (size_t n{node_sources_begin}; n < node_sources_end; ++n)
         {
-            NodeFMM& node_source = nodes[n];
+            NodeFMM& node_source = nodes[node_stack[n]];
 
             glm::dvec2 diff = node_sink.COM - node_source.COM;
             double length_sum = (node_sink.BB_length + node_source.BB_length);
@@ -117,13 +124,7 @@ class SolverFMM : public NBodySolver<T>
                      secondNodePointIndex < node_source.first_particle_index + node_source.particle_index_amount;
                      secondNodePointIndex++)
                 {
-                    interaction_node_point(total,
-                                           points,
-                                           node_sink,
-                                           accumilated_field,
-                                           secondNodePointIndex,
-                                           child_point_sources,
-                                           theta_sq);
+                    interaction_node_point(total, points, node_sink, accumilated_field, secondNodePointIndex, theta_sq);
                 }
             }
             // if B and A are not leaf then make all children interact
@@ -133,16 +134,19 @@ class SolverFMM : public NBodySolver<T>
                      secondNodeChildIndex < node_source.first_child_index + node_source.child_index_amount;
                      secondNodeChildIndex++)
                 {
-                    child_node_sources.push_back(secondNodeChildIndex);
+                    node_stack.push_back(secondNodeChildIndex);
                 }
             }
         }
+
+        const size_t child_node_sources_end = node_stack.size();
+        const size_t child_point_sources_end = point_stack.size();
 
         // accumilated_field is now done so we normalize it and add to inherited
         accumilated_field.normalize(1.0 / node_sink.M0);
         accumilated_field += inherited_field;
 
-        if (sink_is_leaf)
+        if (node_sink.child_index_amount == 0)
         {
             for (unsigned firstNodePointIndex = node_sink.first_particle_index;
                  firstNodePointIndex < node_sink.first_particle_index + node_sink.particle_index_amount;
@@ -164,11 +168,16 @@ class SolverFMM : public NBodySolver<T>
                             points,
                             node_sink_child,
                             accumilated_field.translate_field_from_to_node(node_sink.COM, node_sink_child.COM),
-                            child_node_sources,
-                            child_point_sources,
+                            child_node_sources_begin,
+                            child_node_sources_end,
+                            child_point_sources_begin,
+                            child_point_sources_end,
                             theta_sq);
             }
         }
+
+        node_stack.resize(child_node_sources_begin); // pop this node's lists
+        point_stack.resize(child_point_sources_begin);
     }
 
     void interaction_node_point(double& total,
@@ -176,7 +185,6 @@ class SolverFMM : public NBodySolver<T>
                                 NodeFMM& node_sink,
                                 MF& accumilated_field,
                                 unsigned point_source_index,
-                                std::vector<unsigned>& child_point_sources,
                                 double theta_sq)
     {
         TsnePoint2D& point_source = points[point_source_index];
@@ -202,7 +210,7 @@ class SolverFMM : public NBodySolver<T>
         // if B is not leaf then make all children interact with point
         else
         {
-            child_point_sources.push_back(point_source_index);
+            point_stack.push_back(point_source_index);
         }
     }
 
