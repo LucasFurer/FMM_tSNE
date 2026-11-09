@@ -1,179 +1,159 @@
+#pragma once
+
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
 #include <FMM_tSNE/tsne/solvers/SFMM/node_SFMM.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-inline void TSNE_SFMM_NN(double& total, NodeSFMM& sinkNode, NodeSFMM& sourceNode)
+inline void TSNE_SFMM_NN(double& total, NodeSFMM& node_A, NodeSFMM& node_B)
 {
-    glm::dvec2 R = sinkNode.COM - sourceNode.COM;
-    double sq_r = R.x * R.x + R.y * R.y;
-    double rS = 1.0 + sq_r;
+    const glm::dvec2 R_BA = node_A.COM - node_B.COM;
+    const double R_xx = R_BA.x * R_BA.x;
+    const double R_xy = R_BA.x * R_BA.y;
+    const double R_yy = R_BA.y * R_BA.y;
+    const double r_sq = R_xx + R_yy;
 
-    double inv_rS = 1.0 / rS;
-    double inv_rS2 = inv_rS * inv_rS;
-    double inv_rS3 = inv_rS2 * inv_rS;
-    double inv_rS4 = inv_rS3 * inv_rS;
+    const double rS = 1.0 + r_sq;
+    const double inv_rS = 1.0 / rS;
+    const double inv_rS2 = inv_rS * inv_rS;
+    const double inv_rS3 = inv_rS2 * inv_rS;
+    const double inv_rS4 = inv_rS3 * inv_rS;
 
-    double D1 = inv_rS2;
-    double D2 = -4.0 * inv_rS3;
-    double D3 = 24.0 * inv_rS4;
+    const double D1 = inv_rS2;
+    const double D2 = -4.0 * inv_rS3;
+    const double D3 = 24.0 * inv_rS4;
 
-    double MA0 = sinkNode.M0;
-    double MB0 = sourceNode.M0;
-    double MB2_xx = sourceNode.M2xx;
-    double MB2_xy = sourceNode.M2xy;
-    double MB2_yy = sourceNode.M2yy;
-    double MB2Tilde_xx = (1.0 / MB0) * MB2_xx;
-    double MB2Tilde_xy = (1.0 / MB0) * MB2_xy;
-    double MB2Tilde_yy = (1.0 / MB0) * MB2_yy;
+    const double MA0 = node_A.M0;
+    const double MB0 = node_B.M0;
+
+    const double one_over_MB0 = 1.0 / MB0;
+    const double MB2Tilde_xx = one_over_MB0 * node_B.M2xx;
+    const double MB2Tilde_xy = one_over_MB0 * node_B.M2xy;
+    const double MB2Tilde_yy = one_over_MB0 * node_B.M2yy;
 
     // calculate the C^m
-    double MB2TildeSum1 = MB2Tilde_xx + MB2Tilde_yy;
-    double MB2TildeSum2 =
-        (R.x * R.x * MB2Tilde_xx) + (R.x * R.y * MB2Tilde_xy) + (R.y * R.x * MB2Tilde_xy) + (R.y * R.y * MB2Tilde_yy);
-    double MB2TildeSum3i0 = R.x * MB2Tilde_xx + R.y * MB2Tilde_xy;
-    double MB2TildeSum3i1 = R.x * MB2Tilde_xy + R.y * MB2Tilde_yy;
+    const double MB2TildeSum1 = MB2Tilde_xx + MB2Tilde_yy;
+    const double MB2TildeSum2 =
+        (R_xx * MB2Tilde_xx) + (R_xy * MB2Tilde_xy) + (R_xy * MB2Tilde_xy) + (R_yy * MB2Tilde_yy);
+    const double MB2TildeSum3i0 = R_BA.x * MB2Tilde_xx + R_BA.y * MB2Tilde_xy;
+    const double MB2TildeSum3i1 = R_BA.x * MB2Tilde_xy + R_BA.y * MB2Tilde_yy;
 
-    sinkNode.C1x += MB0 * (R.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2);
-    sinkNode.C1y += MB0 * (R.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2);
-
-    const double C2xx = MA0 * MB0 * (D1 + R.x * R.x * D2);
-    const double C2xy = MA0 * MB0 * (R.x * R.y * D2);
-    const double C2yy = MA0 * MB0 * (D1 + R.y * R.y * D2);
-
-    sinkNode.C2xx += C2xx;
-    sinkNode.C2xy += C2xy;
-    sinkNode.C2yy += C2yy;
-
-    const double C3xxx = MA0 * MB0 * ((R.x + R.x + R.x) * D2 + R.x * R.x * R.x * D3);
-    const double C3xxy = MA0 * MB0 * ((R.y) * D2 + R.x * R.x * R.y * D3);
-    const double C3xyy = MA0 * MB0 * ((R.x) * D2 + R.x * R.y * R.y * D3);
-    const double C3yyy = MA0 * MB0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3);
-
-    sinkNode.C3xxx += C3xxx;
-    sinkNode.C3xxy += C3xxy;
-    sinkNode.C3xyy += C3xyy;
-    sinkNode.C3yyy += C3yyy;
+    const MF field = {
+        MB0 * (R_BA.x * (D1 + (0.5 * MB2TildeSum1 * D2) + (0.5 * MB2TildeSum2 * D3)) + (MB2TildeSum3i0 * D2)),
+        MB0 * (R_BA.y * (D1 + (0.5 * MB2TildeSum1 * D2) + (0.5 * MB2TildeSum2 * D3)) + (MB2TildeSum3i1 * D2)),
+        MA0 * MB0 * (D1 + (R_xx * D2)),
+        MA0 * MB0 * (R_xy * D2),
+        MA0 * MB0 * (D1 + (R_yy * D2)),
+        MA0 * MB0 * ((R_BA.x + R_BA.x + R_BA.x) * D2 + (R_xx * R_BA.x * D3)),
+        MA0 * MB0 * ((R_BA.y * D2) + (R_xx * R_BA.y * D3)),
+        MA0 * MB0 * ((R_BA.x * D2) + (R_xy * R_BA.y * D3)),
+        MA0 * MB0 * ((R_BA.y + R_BA.y + R_BA.y) * D2 + (R_yy * R_BA.y * D3)),
+    };
+    node_A.field += field;
 
     // second interaction ---------------------------------------------------------------------------------------
 
-    R = -R;
+    const glm::dvec2 R_AB = -R_BA;
 
-    MA0 = sourceNode.M0;
-    MB0 = sinkNode.M0;
-    MB2_xx = sinkNode.M2xx;
-    MB2_xy = sinkNode.M2xy;
-    MB2_yy = sinkNode.M2yy;
-    MB2Tilde_xx = (1.0 / MB0) * MB2_xx;
-    MB2Tilde_xy = (1.0 / MB0) * MB2_xy;
-    MB2Tilde_yy = (1.0 / MB0) * MB2_yy;
+    const double one_over_MA0 = 1.0 / MA0;
+    const double MA2Tilde_xx = one_over_MA0 * node_A.M2xx;
+    const double MA2Tilde_xy = one_over_MA0 * node_A.M2xy;
+    const double MA2Tilde_yy = one_over_MA0 * node_A.M2yy;
 
     // calculate the C^m
-    MB2TildeSum1 = MB2Tilde_xx + MB2Tilde_yy;
-    MB2TildeSum2 =
-        (R.x * R.x * MB2Tilde_xx) + (R.x * R.y * MB2Tilde_xy) + (R.y * R.x * MB2Tilde_xy) + (R.y * R.y * MB2Tilde_yy);
-    MB2TildeSum3i0 = R.x * MB2Tilde_xx + R.y * MB2Tilde_xy;
-    MB2TildeSum3i1 = R.x * MB2Tilde_xy + R.y * MB2Tilde_yy;
+    const double MA2TildeSum1 = MA2Tilde_xx + MA2Tilde_yy;
+    const double MA2TildeSum2 =
+        (R_xx * MA2Tilde_xx) + (R_xy * MA2Tilde_xy) + (R_xy * MA2Tilde_xy) + (R_yy * MA2Tilde_yy);
+    const double MA2TildeSum3i0 = R_AB.x * MA2Tilde_xx + R_AB.y * MA2Tilde_xy;
+    const double MA2TildeSum3i1 = R_AB.x * MA2Tilde_xy + R_AB.y * MA2Tilde_yy;
 
-    sourceNode.C1x += MB0 * (R.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2);
-    sourceNode.C1y += MB0 * (R.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2);
-
-    sourceNode.C2xx += C2xx;
-    sourceNode.C2xy += C2xy;
-    sourceNode.C2yy += C2yy;
-
-    sourceNode.C3xxx -= C3xxx;
-    sourceNode.C3xxy -= C3xxy;
-    sourceNode.C3xyy -= C3xyy;
-    sourceNode.C3yyy -= C3yyy;
+    node_B.field +=
+        {MA0 * (R_AB.x * (D1 + (0.5 * MA2TildeSum1 * D2) + (0.5 * MA2TildeSum2 * D3)) + (MA2TildeSum3i0 * D2)),
+         MA0 * (R_AB.y * (D1 + (0.5 * MA2TildeSum1 * D2) + (0.5 * MA2TildeSum2 * D3)) + (MA2TildeSum3i1 * D2)),
+         field.C2xx,
+         field.C2xy,
+         field.C2yy,
+         -field.C3xxx,
+         -field.C3xxy,
+         -field.C3xyy,
+         -field.C3yyy};
 
     // add totals for both interactions
-    total += 2.0 * (sinkNode.M0 * sourceNode.M0) / rS;
+    total += 2.0 * (MA0 * MB0) / rS;
 }
 
-inline void TSNE_SFMM_PN(double& total, TsnePoint2D& sinkPoint, NodeSFMM& sourceNode)
+inline void TSNE_SFMM_PN(double& total, TsnePoint2D& point_A, NodeSFMM& node_B)
 {
-    glm::dvec2 R = sinkPoint.position - sourceNode.COM;
-    double sq_r = R.x * R.x + R.y * R.y;
-    double rS = 1.0 + sq_r;
+    const glm::dvec2 R_BA = point_A.position - node_B.COM;
+    const double R_xx = R_BA.x * R_BA.x;
+    const double R_xy = R_BA.x * R_BA.y;
+    const double R_yy = R_BA.y * R_BA.y;
+    const double r_sq = R_xx + R_yy;
 
-    double inv_rS = 1.0 / rS;
-    double inv_rS2 = inv_rS * inv_rS;
-    double inv_rS3 = inv_rS2 * inv_rS;
-    double inv_rS4 = inv_rS3 * inv_rS;
+    const double rS = 1.0 + r_sq;
+    const double inv_rS = 1.0 / rS;
+    const double inv_rS2 = inv_rS * inv_rS;
+    const double inv_rS3 = inv_rS2 * inv_rS;
+    const double inv_rS4 = inv_rS3 * inv_rS;
 
-    double D1 = inv_rS2;
-    double D2 = -4.0 * inv_rS3;
-    double D3 = 24.0 * inv_rS4;
+    const double D1 = inv_rS2;
+    const double D2 = -4.0 * inv_rS3;
+    const double D3 = 24.0 * inv_rS4;
 
-    double MA0 = 1.0;
-    double MB0 = sourceNode.M0;
-    double MB2_xx = sourceNode.M2xx;
-    double MB2_xy = sourceNode.M2xy;
-    double MB2_yy = sourceNode.M2yy;
-    double MB2Tilde_xx = (1.0 / MB0) * MB2_xx;
-    double MB2Tilde_xy = (1.0 / MB0) * MB2_xy;
-    double MB2Tilde_yy = (1.0 / MB0) * MB2_yy;
+    const double MA0 = 1.0;
+    const double MB0 = node_B.M0;
 
-    double MB2TildeSum1 = MB2Tilde_xx + MB2Tilde_yy;
-    double MB2TildeSum2 =
-        (R.x * R.x * MB2Tilde_xx) + (R.x * R.y * MB2Tilde_xy) + (R.y * R.x * MB2Tilde_xy) + (R.y * R.y * MB2Tilde_yy);
-    double MB2TildeSum3i0 = R.x * MB2Tilde_xx + R.y * MB2Tilde_xy;
-    double MB2TildeSum3i1 = R.x * MB2Tilde_xy + R.y * MB2Tilde_yy;
+    const double one_over_MB0 = 1.0 / MB0;
+    const double MB2Tilde_xx = one_over_MB0 * node_B.M2xx;
+    const double MB2Tilde_xy = one_over_MB0 * node_B.M2xy;
+    const double MB2Tilde_yy = one_over_MB0 * node_B.M2yy;
 
-    sinkPoint.derivative.x +=
-        MB0 * (R.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2);
-    sinkPoint.derivative.y +=
-        MB0 * (R.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2);
+    const double MB2TildeSum1 = MB2Tilde_xx + MB2Tilde_yy;
+    const double MB2TildeSum2 =
+        (R_xx * MB2Tilde_xx) + (R_xy * MB2Tilde_xy) + (R_xy * MB2Tilde_xy) + (R_yy * MB2Tilde_yy);
+    const double MB2TildeSum3i0 = R_BA.x * MB2Tilde_xx + R_BA.y * MB2Tilde_xy;
+    const double MB2TildeSum3i1 = R_BA.x * MB2Tilde_xy + R_BA.y * MB2Tilde_yy;
+
+    point_A.derivative +=
+        glm::dvec2{MB0 * (R_BA.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2),
+                   MB0 * (R_BA.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2)};
 
     // second interaction ---------------------------------------------------------------------------------------
 
-    R = -R;
+    const glm::dvec2 R_AB = -R_BA;
 
-    MA0 = sourceNode.M0;
-    MB0 = 1.0;
-
-    sourceNode.C1x += (R.x * D1);
-    sourceNode.C1y += (R.y * D1);
-
-    const double C2xx = MA0 * (D1 + R.x * R.x * D2);
-    const double C2xy = MA0 * (R.x * R.y * D2);
-    const double C2yy = MA0 * (D1 + R.y * R.y * D2);
-
-    sourceNode.C2xx += C2xx;
-    sourceNode.C2xy += C2xy;
-    sourceNode.C2yy += C2yy;
-
-    const double C3xxx = MA0 * ((R.x + R.x + R.x) * D2 + R.x * R.x * R.x * D3);
-    const double C3xxy = MA0 * ((R.y) * D2 + R.x * R.x * R.y * D3);
-    const double C3xyy = MA0 * ((R.x) * D2 + R.x * R.y * R.y * D3);
-    const double C3yyy = MA0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3);
-
-    sourceNode.C3xxx += C3xxx;
-    sourceNode.C3xxy += C3xxy;
-    sourceNode.C3xyy += C3xyy;
-    sourceNode.C3yyy += C3yyy;
+    node_B.field += {R_AB.x * D1,
+                     R_AB.y * D1,
+                     MB0 * (D1 + (R_xx * D2)),
+                     MB0 * (R_xy * D2),
+                     MB0 * (D1 + (R_yy * D2)),
+                     MB0 * ((R_AB.x + R_AB.x + R_AB.x) * D2 + (R_xx * R_AB.x * D3)),
+                     MB0 * ((R_AB.y * D2) + (R_xx * R_AB.y * D3)),
+                     MB0 * ((R_AB.x * D2) + (R_xy * R_AB.y * D3)),
+                     MB0 * ((R_AB.y + R_AB.y + R_AB.y) * D2 + (R_yy * R_AB.y * D3))};
 
     // add totals for both interactions
-    total += 2.0 * sourceNode.M0 / rS;
+    total += 2.0 * MB0 / rS;
 }
 
-inline void TSNE_SFMM_PP(double& total, TsnePoint2D& sinkPoint, TsnePoint2D& sourcePoint)
+inline void TSNE_SFMM_PP(double& total, TsnePoint2D& point_A, TsnePoint2D& point_B)
 {
-    glm::dvec2 R = sinkPoint.position - sourcePoint.position;
-    double sq_dist = R.x * R.x + R.y * R.y;
+    const glm::dvec2 R_BA = point_A.position - point_B.position;
+    const double r_sq = R_BA.x * R_BA.x + R_BA.y * R_BA.y;
 
-    double forceDecay = 1.0 / (1.0 + sq_dist);
+    const double rS = 1.0 + r_sq;
 
-    sinkPoint.derivative += forceDecay * forceDecay * R;
+    const double inv_rS = 1.0 / rS;
+
+    point_A.derivative += inv_rS * inv_rS * R_BA;
 
     // second interaction ---------------------------------------------------------------------------------------
 
-    R = -R;
+    const glm::dvec2 R_AB = -R_BA;
 
-    sourcePoint.derivative += forceDecay * forceDecay * R;
+    point_B.derivative += inv_rS * inv_rS * R_AB;
 
     // add totals for both interactions
-    total += 2.0 * forceDecay;
+    total += 2.0 * inv_rS;
 }

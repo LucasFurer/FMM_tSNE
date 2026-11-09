@@ -1,3 +1,5 @@
+#pragma once
+
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
 #include <FMM_tSNE/tsne/solvers/FMM/node_FMM.h>
 #include <glm/glm.hpp>
@@ -6,29 +8,26 @@
 
 inline void TSNE_FMM_NN(double& total, NodeFMM& sinkNode, MF& sinkField, NodeFMM& sourceNode)
 {
-    glm::dvec2 R = sinkNode.COM - sourceNode.COM;
-    double sq_r = R.x * R.x + R.y * R.y;
-    double rS = 1.0 + sq_r;
+    const glm::dvec2 R = sinkNode.COM - sourceNode.COM;
+    const double r_squared = R.x * R.x + R.y * R.y;
 
-    double inv_rS = 1.0 / rS;
-    double inv_rS2 = inv_rS * inv_rS;
-    double inv_rS3 = inv_rS2 * inv_rS;
-    double inv_rS4 = inv_rS3 * inv_rS;
+    const double rS = 1.0 + r_squared;
+    const double inv_rS = 1.0 / rS;
+    const double inv_rS2 = inv_rS * inv_rS;
+    const double inv_rS3 = inv_rS2 * inv_rS;
+    const double inv_rS4 = inv_rS3 * inv_rS;
 
-    double D1 = inv_rS2;
-    double D2 = -4.0 * inv_rS3;
-    double D3 = 24.0 * inv_rS4;
+    const double D1 = inv_rS2;
+    const double D2 = -4.0 * inv_rS3;
+    const double D3 = 24.0 * inv_rS4;
 
-    double MA0 = sinkNode.M0;
-    double MB0 = sourceNode.M0;
-    double MB2_xx = sourceNode.M2xx;
-    double MB2_xy = sourceNode.M2xy;
-    double MB2_yy = sourceNode.M2yy;
-    double MB2Tilde_xx = (1.0 / MB0) * MB2_xx;
-    double MB2Tilde_xy = (1.0 / MB0) * MB2_xy;
-    double MB2Tilde_yy = (1.0 / MB0) * MB2_yy;
+    const auto MA0 = static_cast<double>(sinkNode.M0);
+    const auto MB0 = static_cast<double>(sourceNode.M0);
 
-    // calculate the C^m
+    const double MB2Tilde_xx = (1.0 / MB0) * sourceNode.M2xx;
+    const double MB2Tilde_xy = (1.0 / MB0) * sourceNode.M2xy;
+    const double MB2Tilde_yy = (1.0 / MB0) * sourceNode.M2yy;
+
     double MB2TildeSum1 = MB2Tilde_xx + MB2Tilde_yy;
     double MB2TildeSum2 =
         (R.x * R.x * MB2Tilde_xx) + (R.x * R.y * MB2Tilde_xy) + (R.y * R.x * MB2Tilde_xy) + (R.y * R.y * MB2Tilde_yy);
@@ -45,64 +44,61 @@ inline void TSNE_FMM_NN(double& total, NodeFMM& sinkNode, MF& sinkField, NodeFMM
                   MA0 * MB0 * ((R.x) * D2 + R.x * R.y * R.y * D3),
                   MA0 * MB0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3)};
 
-    // add totals for both interactions
-    total += (sinkNode.M0 * sourceNode.M0) / rS;
+    total += (MA0 * MB0) / rS;
 }
 
 inline void TSNE_FMM_PN(double& total, TsnePoint2D& sinkPoint, NodeFMM& sourceNode)
 {
-    glm::dvec2 R = sinkPoint.position - sourceNode.COM;
-    double sq_r = R.x * R.x + R.y * R.y;
-    double rS = 1.0 + sq_r;
+    const glm::dvec2 R = sinkPoint.position - sourceNode.COM;
+    const double r_squared = R.x * R.x + R.y * R.y;
 
-    double inv_rS = 1.0 / rS;
-    double inv_rS2 = inv_rS * inv_rS;
-    double inv_rS3 = inv_rS2 * inv_rS;
-    double inv_rS4 = inv_rS3 * inv_rS;
+    const double rS = 1.0 + r_squared;
+    const double inv_rS = 1.0 / rS;
+    const double inv_rS2 = inv_rS * inv_rS;
+    const double inv_rS3 = inv_rS2 * inv_rS;
+    const double inv_rS4 = inv_rS3 * inv_rS;
 
-    double D1 = inv_rS2;
-    double D2 = -4.0 * inv_rS3;
-    double D3 = 24.0 * inv_rS4;
+    const double D1 = inv_rS2;
+    const double D2 = -4.0 * inv_rS3;
+    const double D3 = 24.0 * inv_rS4;
 
-    double MA0 = 1.0;
-    double MB0 = sourceNode.M0;
-    double MB2_xx = sourceNode.M2xx;
-    double MB2_xy = sourceNode.M2xy;
-    double MB2_yy = sourceNode.M2yy;
-    double MB2Tilde_xx = (1.0 / MB0) * MB2_xx;
-    double MB2Tilde_xy = (1.0 / MB0) * MB2_xy;
-    double MB2Tilde_yy = (1.0 / MB0) * MB2_yy;
+    const auto MA0 = 1.0;
+    const auto MB0 = static_cast<double>(sourceNode.M0);
 
-    double MB2TildeSum1 = MB2Tilde_xx + MB2Tilde_yy;
-    double MB2TildeSum2 =
+    const double MB2Tilde_xx = (1.0 / MB0) * sourceNode.M2xx;
+    const double MB2Tilde_xy = (1.0 / MB0) * sourceNode.M2xy;
+    const double MB2Tilde_yy = (1.0 / MB0) * sourceNode.M2yy;
+
+    const double MB2TildeSum1 = MB2Tilde_xx + MB2Tilde_yy;
+    const double MB2TildeSum2 =
         (R.x * R.x * MB2Tilde_xx) + (R.x * R.y * MB2Tilde_xy) + (R.y * R.x * MB2Tilde_xy) + (R.y * R.y * MB2Tilde_yy);
-    double MB2TildeSum3i0 = R.x * MB2Tilde_xx + R.y * MB2Tilde_xy;
-    double MB2TildeSum3i1 = R.x * MB2Tilde_xy + R.y * MB2Tilde_yy;
+    const double MB2TildeSum3i0 = R.x * MB2Tilde_xx + R.y * MB2Tilde_xy;
+    const double MB2TildeSum3i1 = R.x * MB2Tilde_xy + R.y * MB2Tilde_yy;
 
     sinkPoint.derivative +=
         glm::dvec2{MB0 * (R.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2),
                    MB0 * (R.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2)};
 
-    total += sourceNode.M0 / rS;
+    total += MB0 / rS;
 }
 
 inline void TSNE_FMM_NP(double& total, NodeFMM& sinkNode, MF& sinkField, TsnePoint2D& sourcePoint)
 {
-    glm::dvec2 R = sinkNode.COM - sourcePoint.position;
-    double sq_r = R.x * R.x + R.y * R.y;
-    double rS = 1.0 + sq_r;
+    const glm::dvec2 R = sinkNode.COM - sourcePoint.position;
+    const double r_squared = R.x * R.x + R.y * R.y;
 
-    double inv_rS = 1.0 / rS;
-    double inv_rS2 = inv_rS * inv_rS;
-    double inv_rS3 = inv_rS2 * inv_rS;
-    double inv_rS4 = inv_rS3 * inv_rS;
+    const double rS = 1.0 + r_squared;
+    const double inv_rS = 1.0 / rS;
+    const double inv_rS2 = inv_rS * inv_rS;
+    const double inv_rS3 = inv_rS2 * inv_rS;
+    const double inv_rS4 = inv_rS3 * inv_rS;
 
-    double D1 = inv_rS2;
-    double D2 = -4.0 * inv_rS3;
-    double D3 = 24.0 * inv_rS4;
+    const double D1 = inv_rS2;
+    const double D2 = -4.0 * inv_rS3;
+    const double D3 = 24.0 * inv_rS4;
 
-    double MA0 = sinkNode.M0;
-    double MB0 = 1.0;
+    const auto MA0 = static_cast<double>(sinkNode.M0);
+    const double MB0 = 1.0;
 
     sinkField += {(R.x * D1),
                   (R.y * D1),
@@ -114,17 +110,18 @@ inline void TSNE_FMM_NP(double& total, NodeFMM& sinkNode, MF& sinkField, TsnePoi
                   MA0 * ((R.x) * D2 + R.x * R.y * R.y * D3),
                   MA0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3)};
 
-    total += sinkNode.M0 / rS;
+    total += MA0 / rS;
 }
 
 inline void TSNE_FMM_PP(double& total, TsnePoint2D& sinkPoint, TsnePoint2D& sourcePoint)
 {
-    glm::dvec2 R = sinkPoint.position - sourcePoint.position;
-    double sq_dist = R.x * R.x + R.y * R.y;
+    const glm::dvec2 R = sinkPoint.position - sourcePoint.position;
+    const double r_squared = R.x * R.x + R.y * R.y;
 
-    double forceDecay = 1.0 / (1.0 + sq_dist);
+    const double rS = 1.0 + r_squared;
+    const double inv_rS = 1.0 / rS;
 
-    sinkPoint.derivative += forceDecay * forceDecay * R;
+    sinkPoint.derivative += inv_rS * inv_rS * R;
 
-    total += forceDecay;
+    total += inv_rS;
 }

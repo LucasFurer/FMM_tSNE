@@ -1,3 +1,5 @@
+#pragma once
+
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
 #include <glm/glm.hpp>
 #include <vector>

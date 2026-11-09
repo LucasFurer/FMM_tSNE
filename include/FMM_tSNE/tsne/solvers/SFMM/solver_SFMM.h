@@ -1,5 +1,6 @@
 #pragma once
 
+#include <FMM_tSNE/morton/morton.h>
 #include <FMM_tSNE/timer/timer.h>
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
 #include <FMM_tSNE/tsne/solvers/SFMM/kernel_SFMM.h>
@@ -32,17 +33,11 @@ class SolverSFMM : public NBodySolver<T>
 
     void solveNbody(double& total, std::vector<T>& points) override
     {
-        traverse_SYM_NN(total, points, nodes[0], nodes[0], this->theta * this->theta);
+        NodeSFMM& root = nodes[0];
+        traverse_SYM_NN(total, points, root, root, this->theta * this->theta);
 
-        double one_over_M0 = 1.0 / nodes[0].M0;
-        nodes[0].C2xx *= one_over_M0;
-        nodes[0].C2xy *= one_over_M0;
-        nodes[0].C2yy *= one_over_M0;
-        nodes[0].C3xxx *= one_over_M0;
-        nodes[0].C3xxy *= one_over_M0;
-        nodes[0].C3xyy *= one_over_M0;
-        nodes[0].C3yyy *= one_over_M0;
-        applyForces(points, nodes[0]);
+        root.field.normalize(1.0 / root.M0);
+        applyForces(points, root);
     }
 
     void updateTree(std::vector<T>& points, glm::dvec2 minPos, glm::dvec2 maxPos) override
@@ -51,7 +46,7 @@ class SolverSFMM : public NBodySolver<T>
         double largestAxis = glm::compMax(maxPos + negMinPos);
 
 #ifdef INDEX_TRACKER
-        createMortonCode(points, negMinPos, largestAxis);
+        Morton::createMortonCode(points, negMinPos, largestAxis);
         boost::sort::spreadsort::integer_sort(
             points.begin(), points.end(), TsnePoint2DRightshift(), TsnePoint2DLessthan());
 #endif
@@ -77,17 +72,17 @@ class SolverSFMM : public NBodySolver<T>
         if (&node_A == &node_B)
         {
             // if node is leaf then do symmetric PP interactions
-            if (node_A.child_index_amount == 0)
+            if (node_A.child_count == 0)
             {
-                const unsigned end = node_A.first_particle_index + node_A.particle_index_amount;
-                for (unsigned i = node_A.first_particle_index; i < end; ++i)
+                const unsigned end = node_A.first_point_index + node_A.point_count;
+                for (unsigned i = node_A.first_point_index; i < end; ++i)
                     for (unsigned j = i + 1; j < end; ++j)
                         TSNE_SFMM_PP(total, points[i], points[j]);
             }
             // if node is not leaf then do each NN interaction that is unique
             else
             {
-                const unsigned end = node_A.first_child_index + node_A.child_index_amount;
+                const unsigned end = node_A.first_child_index + node_A.child_count;
                 for (unsigned i = node_A.first_child_index; i < end; ++i)
                     for (unsigned j = i; j < end; ++j)
                         traverse_SYM_NN(total, points, nodes[i], nodes[j], theta_sq);
@@ -105,37 +100,29 @@ class SolverSFMM : public NBodySolver<T>
             TSNE_SFMM_NN(total, node_A, node_B);
         }
         // if A is leaf then do PN interaction with B for every point in A
-        else if (node_A.child_index_amount == 0)
+        else if (node_A.child_count == 0)
         {
-            for (int firstNodePointIndex = node_A.first_particle_index;
-                 firstNodePointIndex < node_A.first_particle_index + node_A.particle_index_amount;
-                 firstNodePointIndex++)
+            for (int i = node_A.first_point_index; i < node_A.first_point_index + node_A.point_count; i++)
             {
-                traverse_SYM_PN(total, points, points[firstNodePointIndex], node_B, theta_sq);
+                traverse_SYM_PN(total, points, points[i], node_B, theta_sq);
             }
         }
         // if B is leaf then do PN interaction with A for every point in B
-        else if (node_B.child_index_amount == 0)
+        else if (node_B.child_count == 0)
         {
-            for (int secondNodePointIndex = node_B.first_particle_index;
-                 secondNodePointIndex < node_B.first_particle_index + node_B.particle_index_amount;
-                 secondNodePointIndex++)
+            for (int i = node_B.first_point_index; i < node_B.first_point_index + node_B.point_count; i++)
             {
-                traverse_SYM_PN(total, points, points[secondNodePointIndex], node_A, theta_sq);
+                traverse_SYM_PN(total, points, points[i], node_A, theta_sq);
             }
         }
         // if B and A are not leaf then make all children interact
         else
         {
-            for (int firstNodeChildIndex = node_A.first_child_index;
-                 firstNodeChildIndex < node_A.first_child_index + node_A.child_index_amount;
-                 firstNodeChildIndex++)
+            for (int i = node_A.first_child_index; i < node_A.first_child_index + node_A.child_count; i++)
             {
-                for (int secondNodeChildIndex = node_B.first_child_index;
-                     secondNodeChildIndex < node_B.first_child_index + node_B.child_index_amount;
-                     secondNodeChildIndex++)
+                for (int j = node_B.first_child_index; j < node_B.first_child_index + node_B.child_count; j++)
                 {
-                    traverse_SYM_NN(total, points, nodes[firstNodeChildIndex], nodes[secondNodeChildIndex], theta_sq);
+                    traverse_SYM_NN(total, points, nodes[i], nodes[j], theta_sq);
                 }
             }
         }
@@ -152,23 +139,19 @@ class SolverSFMM : public NBodySolver<T>
             TSNE_SFMM_PN(total, point, node);
         }
         // if node is leaf then do PP interaction with point for every point in node
-        else if (node.child_index_amount == 0)
+        else if (node.child_count == 0)
         {
-            for (int secondNodePointIndex = node.first_particle_index;
-                 secondNodePointIndex < node.first_particle_index + node.particle_index_amount;
-                 secondNodePointIndex++)
+            for (int i = node.first_point_index; i < node.first_point_index + node.point_count; i++)
             {
-                TSNE_SFMM_PP(total, point, points[secondNodePointIndex]);
+                TSNE_SFMM_PP(total, point, points[i]);
             }
         }
         // if B is not leaf then make all children interact with point
         else
         {
-            for (int secondNodeChildIndex = node.first_child_index;
-                 secondNodeChildIndex < node.first_child_index + node.child_index_amount;
-                 secondNodeChildIndex++)
+            for (int i = node.first_child_index; i < node.first_child_index + node.child_count; i++)
             {
-                traverse_SYM_PN(total, points, point, nodes[secondNodeChildIndex], theta_sq);
+                traverse_SYM_PN(total, points, point, nodes[i], theta_sq);
             }
         }
     }
@@ -193,8 +176,8 @@ class SolverSFMM : public NBodySolver<T>
         for (size_t n = 0; n < nodes.size(); ++n)
         {
             // copy what we need: push_back below may invalidate references into `nodes`
-            const unsigned first = nodes[n].first_particle_index;
-            const unsigned count = nodes[n].particle_index_amount;
+            const unsigned first = nodes[n].first_point_index;
+            const unsigned count = nodes[n].point_count;
             const unsigned depth = depths[n];
             const glm::dvec2 centre = BB_centres[n]; // nodes[n].BB_centre;
             const double length = nodes[n].BB_length;
@@ -203,7 +186,7 @@ class SolverSFMM : public NBodySolver<T>
             if (count <= max_particles_per_leaf || depth >= max_depth)
             {
                 nodes[n].first_child_index = 0;
-                nodes[n].child_index_amount = 0;
+                nodes[n].child_count = 0;
                 continue;
             }
 
@@ -249,7 +232,7 @@ class SolverSFMM : public NBodySolver<T>
                 BB_centres.push_back(centre + glm::dvec2((q & 1u) ? offset : -offset, (q & 2u) ? offset : -offset));
                 ++child_count;
             }
-            nodes[n].child_index_amount = child_count;
+            nodes[n].child_count = child_count;
         }
     }
 
@@ -261,28 +244,28 @@ class SolverSFMM : public NBodySolver<T>
             NodeSFMM& node = nodes[n];
 
             // leaf node
-            if (node.child_index_amount == 0)
+            if (node.child_count == 0)
             {
                 // calculate M0 and COM
                 glm::dvec2 sum{0.0};
-                for (unsigned i = 0; i < node.particle_index_amount; ++i)
-                    sum += points[node.first_particle_index + i].position;
+                for (unsigned i = 0; i < node.point_count; ++i)
+                    sum += points[node.first_point_index + i].position;
 
-                node.M0 = static_cast<double>(node.particle_index_amount); // unit mass per point
+                node.M0 = static_cast<double>(node.point_count); // unit mass per point
                 node.COM = sum / node.M0;
 
                 // calculate M2
-                for (unsigned i = 0; i < node.particle_index_amount; ++i)
+                for (unsigned p = node.first_point_index; p < node.first_point_index + node.point_count; ++p)
                 {
-                    glm::dvec2 relativeCoord = points[node.first_particle_index + i].position - nodes[n].COM;
+                    glm::dvec2 relativeCoord = points[p].position - node.COM;
 
-                    nodes[n].M2xx += relativeCoord.x * relativeCoord.x;
-                    nodes[n].M2xy += relativeCoord.x * relativeCoord.y;
-                    nodes[n].M2yy += relativeCoord.y * relativeCoord.y;
+                    node.M2xx += relativeCoord.x * relativeCoord.x;
+                    node.M2xy += relativeCoord.x * relativeCoord.y;
+                    node.M2yy += relativeCoord.y * relativeCoord.y;
                 }
             }
             // non leaf with only 1 child therefore we can prune
-            else if (node.child_index_amount == 1)
+            else if (node.child_count == 1)
             {
                 // makes node BB visualization correct but costs some performance
                 // BB_centres[n] = BB_centres[node.first_child_index];
@@ -295,9 +278,10 @@ class SolverSFMM : public NBodySolver<T>
                 // calculate M0 and COM
                 double mass = 0.0;
                 glm::dvec2 weighted{0.0};
-                for (unsigned c = 0; c < node.child_index_amount; ++c)
+                for (unsigned c{node.first_child_index}; c < node.first_child_index + node.child_count; ++c)
                 {
-                    const NodeSFMM& child = nodes[node.first_child_index + c];
+                    const NodeSFMM& child = nodes[c];
+
                     mass += child.M0;
                     weighted += child.M0 * child.COM;
                 }
@@ -305,125 +289,46 @@ class SolverSFMM : public NBodySolver<T>
                 node.COM = weighted / mass;
 
                 // calculate M2
-                for (unsigned c = 0; c < node.child_index_amount; ++c)
+                for (unsigned c{node.first_child_index}; c < node.first_child_index + node.child_count; ++c)
                 {
-                    glm::dvec2 relativeCoord = nodes[node.first_child_index + c].COM - nodes[n].COM;
+                    const NodeSFMM& child = nodes[c];
 
-                    nodes[n].M2xx += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.x;
-                    nodes[n].M2xy += nodes[node.first_child_index + c].M0 * relativeCoord.x * relativeCoord.y;
-                    nodes[n].M2yy += nodes[node.first_child_index + c].M0 * relativeCoord.y * relativeCoord.y;
+                    glm::dvec2 relativeCoord = child.COM - node.COM;
 
-                    nodes[n].M2xx += nodes[node.first_child_index + c].M2xx;
-                    nodes[n].M2xy += nodes[node.first_child_index + c].M2xy;
-                    nodes[n].M2yy += nodes[node.first_child_index + c].M2yy;
+                    node.M2xx += child.M0 * relativeCoord.x * relativeCoord.x;
+                    node.M2xy += child.M0 * relativeCoord.x * relativeCoord.y;
+                    node.M2yy += child.M0 * relativeCoord.y * relativeCoord.y;
+
+                    node.M2xx += child.M2xx;
+                    node.M2xy += child.M2xy;
+                    node.M2yy += child.M2yy;
                 }
             }
         }
     }
 
-    inline uint32_t compact16(uint32_t x)
-    {
-        x &= 0x55555555u;
-        x = (x | (x >> 1)) & 0x33333333u;
-        x = (x | (x >> 2)) & 0x0F0F0F0Fu;
-        x = (x | (x >> 4)) & 0x00FF00FFu;
-        x = (x | (x >> 8)) & 0x0000FFFFu;
-        return x;
-    }
-
     void applyForces(std::vector<T>& points, NodeSFMM& node)
     {
-        if (node.child_index_amount != 0)
+        if (node.child_count != 0)
         {
-            for (int child = node.first_child_index; child < node.first_child_index + node.child_index_amount; child++)
+            for (int c = node.first_child_index; c < node.first_child_index + node.child_count; c++)
             {
-                double one_over_M0 = 1.0 / nodes[child].M0;
-                nodes[child].C2xx *= one_over_M0;
-                nodes[child].C2xy *= one_over_M0;
-                nodes[child].C2yy *= one_over_M0;
-                nodes[child].C3xxx *= one_over_M0;
-                nodes[child].C3xxy *= one_over_M0;
-                nodes[child].C3xyy *= one_over_M0;
-                nodes[child].C3yyy *= one_over_M0;
+                NodeSFMM& child = nodes[c];
 
-                glm::dvec2 oldZ = nodes[child].COM;
-                glm::dvec2 newZ = node.COM;
-                glm::dvec2 diff = oldZ - newZ;
+                child.field.normalize(1.0 / child.M0);
+                child.field += node.field.translate_field_from_to_node(node.COM, child.COM);
 
-                double diff_einsum_C2_x = diff.x * node.C2xx + diff.y * node.C2xy;
-                double diff_einsum_C2_y = diff.x * node.C2xy + diff.y * node.C2yy;
-
-                double diff_einsum_C3_xx = diff.x * node.C3xxx + diff.y * node.C3xxy;
-                double diff_einsum_C3_xy = diff.x * node.C3xxy + diff.y * node.C3xyy;
-                double diff_einsum_C3_yy = diff.x * node.C3xyy + diff.y * node.C3yyy;
-
-                double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
-                double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
-
-                nodes[child].C1x += node.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
-                nodes[child].C1y += node.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
-                nodes[child].C2xx += node.C2xx + diff_einsum_C3_xx;
-                nodes[child].C2xy += node.C2xy + diff_einsum_C3_xy;
-                nodes[child].C2yy += node.C2yy + diff_einsum_C3_yy;
-                nodes[child].C3xxx += node.C3xxx;
-                nodes[child].C3xxy += node.C3xxy;
-                nodes[child].C3xyy += node.C3xyy;
-                nodes[child].C3yyy += node.C3yyy;
-
-                applyForces(points, nodes[child]);
+                applyForces(points, nodes[c]);
             }
         }
         else
         {
-            for (int point = node.first_particle_index; point < node.first_particle_index + node.particle_index_amount;
-                 point++)
+            for (int p = node.first_point_index; p < node.first_point_index + node.point_count; p++)
             {
-                glm::dvec2 x = points[point].position;
-                glm::dvec2 Z0 = node.COM;
-                glm::dvec2 diff = points[point].position - node.COM;
-
-                double diff_einsum_C2_x = diff.x * node.C2xx + diff.y * node.C2xy;
-                double diff_einsum_C2_y = diff.x * node.C2xy + diff.y * node.C2yy;
-
-                double diff_einsum_C3_xx = diff.x * node.C3xxx + diff.y * node.C3xxy;
-                double diff_einsum_C3_xy = diff.x * node.C3xxy + diff.y * node.C3xyy;
-                double diff_einsum_C3_yy = diff.x * node.C3xyy + diff.y * node.C3yyy;
-
-                double diff_einsumx2_C3_x = diff.x * diff_einsum_C3_xx + diff.y * diff_einsum_C3_xy;
-                double diff_einsumx2_C3_y = diff.x * diff_einsum_C3_xy + diff.y * diff_einsum_C3_yy;
-
-                points[point].derivative.x += node.C1x + diff_einsum_C2_x + 0.5 * diff_einsumx2_C3_x;
-                points[point].derivative.y += node.C1y + diff_einsum_C2_y + 0.5 * diff_einsumx2_C3_y;
+                T& point = points[p];
+                point.derivative += node.field.translate_field_from_to_point(node.COM, point.position);
             }
         }
-    }
-
-    void createMortonCode(std::vector<TsnePoint2D>& points, glm::dvec2 negMinPos, double largestAxis)
-    {
-        glm::dvec2 position{0.0};
-        for (int i = 0; i < points.size(); i++)
-        {
-            position = points[i].position;
-
-            position = (position + negMinPos) / (largestAxis); // rescale such that range is between [0-1]
-
-            position = glm::min(
-                glm::max(position * 65536.0, glm::dvec2(0.0)),
-                glm::dvec2(
-                    65535.0)); // rescale such that range is between [0-65535] which is the max number for 16 bits
-#ifdef INDEX_TRACKER
-            points[i].morton_code = (spread16((uint32_t) position.y) << 1) | spread16((uint32_t) position.x);
-#endif
-        }
-    }
-
-    inline uint32_t spread16(uint32_t x)
-    {
-        x = (x | (x << 8)) & 0x00FF00FFu;
-        x = (x | (x << 4)) & 0x0F0F0F0Fu;
-        x = (x | (x << 2)) & 0x33333333u;
-        x = (x | (x << 1)) & 0x55555555u;
-        return x;
     }
 
     void getNodesBufferData(std::vector<VertexPos2Col3>& nodesBufferData, const NodeSFMM&, int, int showLevel)

@@ -117,8 +117,8 @@ int main()
                       30.0f,          // perplexity
                       216308u         // seed: 216308u, 592340823u, 4523u, 296343u
     );
-    // tsne.nBodySelect = "FMM_SYM_MORTON";
-    tsne.nBodySelect = "FMM_MORTON";
+    tsne.nBodySelect = "FMM_SYM_MORTON";
+    // tsne.nBodySelect = "FMM_MORTON";
     // tsne.nBodySelect = "PM";
     // tsne.nBodySelect = "naive";
 
