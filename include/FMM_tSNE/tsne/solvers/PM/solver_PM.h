@@ -85,8 +85,8 @@
 #include <chrono>
 #include <FMM_tSNE/tsne/solvers/solver.h>
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
-#include <FMM_tSNE/data_loaders/sparse_entry_COO_2D.h>
-#include <FMM_tSNE/data_loaders/sparse_entry_CSC_2D.h>
+#include <FMM_tSNE/data_handling/sparse_entries/sparse_entry_COO_2D.h>
+#include <FMM_tSNE/data_handling/sparse_entries/sparse_entry_CSC_2D.h>
 
 //#include "../../structs/sparseEntry2D.h"
 //#include "../../common.h"

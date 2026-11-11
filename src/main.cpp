@@ -1,5 +1,6 @@
 #include <FMM_tSNE/app.h>
 #include <FMM_tSNE/cameras/two_D_camera.h>
+#include <FMM_tSNE/data_handling/P_matrix.h>
 #include <FMM_tSNE/tsne/tests/tsne_test.h>
 #include <FMM_tSNE/tsne/tsne_buffers.h>
 #include <glm/glm.hpp>
@@ -7,17 +8,19 @@
 
 int main()
 {
+    // PMatrix P_matrix;
+
     App app{};
 
-    TsneTest tsne_test{};
-    tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
-                                10000,          // data_size
-                                30.0f,          // perplexity
-                                1000,           // iteration_amount
-                                0.75f,          // theta
-                                1.25f,          // cell_size
-                                216308u         // seed
-    );
+    // TsneTest tsne_test{};
+    // tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
+    //                             10000,          // data_size
+    //                             30.0f,          // perplexity
+    //                             1000,           // iteration_amount
+    //                             0.75f,          // theta
+    //                             1.25f,          // cell_size
+    //                             216308u         // seed
+    // );
 
     // tsne_test.calculationtimeThetaTSNE("MNIST_digits",                                           // data_set
     //                                    10000,                                                    // data_size
@@ -113,7 +116,7 @@ int main()
                       0.7,            // max_theta
                       1.25,           // cell_size
                       "MNIST_digits", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
-                      70000,          // data_size
+                      1000,           // data_size
                       30.0f,          // perplexity
                       216308u         // seed: 216308u, 592340823u, 4523u, 296343u
     );

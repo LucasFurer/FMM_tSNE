@@ -1,8 +1,10 @@
 #pragma once
 
-#include <FMM_tSNE/data_loaders/MNIST_data.h>
-#include <FMM_tSNE/data_loaders/sparse_entry_COO_2D.h>
-#include <FMM_tSNE/data_loaders/sparse_entry_CSC_2D.h>
+#include <FMM_tSNE/data_handling/MNIST_data.h>
+#include <FMM_tSNE/data_handling/P_matrix.h>
+#include <FMM_tSNE/data_handling/sparse_data_loader.h>
+#include <FMM_tSNE/data_handling/sparse_entries/sparse_entry_COO_2D.h>
+#include <FMM_tSNE/data_handling/sparse_entries/sparse_entry_CSC_2D.h>
 #include <FMM_tSNE/opengl_interaction/scene.h>
 #include <FMM_tSNE/timer/timer.h>
 #include <FMM_tSNE/tsne/Q_total_cuda.h>
@@ -87,12 +89,16 @@ class TSNE
             std::filesystem::current_path() /
             ("data/" + dataSet + "/" + std::to_string(data_amount) + "/P_matrix_amount" + std::to_string(data_amount) +
              "_perp" + std::to_string((int) perplexity) + ".mtx");
-        labels = MNIST_data::loadLabels(labelsPath.string());
-        Pmatrix = MNIST_data::loadPmatrix(fileName.string());
+        labels = SparseDataLoader::loadLabels(labelsPath.string());
+        Pmatrix = SparseDataLoader::loadPmatrix(fileName.string());
 
         generateInitialPoints(data_amount, seed, false, 2.0);
 
-        setupEfficientPmatrix();
+        // setupEfficientPmatrix();
+        PMatrix P_matrix;
+        row_P = P_matrix.row_P;
+        col_P = P_matrix.col_P;
+        val_P = P_matrix.val_P;
 
         updateMinMaxPos();
 
@@ -168,12 +174,16 @@ class TSNE
             std::filesystem::current_path() /
             ("data/" + dataSet + "/" + std::to_string(data_amount) + "/P_matrix_amount" + std::to_string(data_amount) +
              "_perp" + std::to_string((int) perplexity) + ".mtx");
-        labels = MNIST_data::loadLabels(labelsPath.string());
-        Pmatrix = MNIST_data::loadPmatrix(fileName.string());
+        labels = SparseDataLoader::loadLabels(labelsPath.string());
+        Pmatrix = SparseDataLoader::loadPmatrix(fileName.string());
 
         generateInitialPoints(data_amount, seed, false, 2.0);
 
         setupEfficientPmatrix();
+        // PMatrix P_matrix;
+        // row_P = P_matrix.row_P;
+        // col_P = P_matrix.col_P;
+        // val_P = P_matrix.val_P;
 
         updateMinMaxPos();
 
@@ -326,60 +336,6 @@ class TSNE
 #endif
     }
 
-    void updateAttractiveOUTDATED1()
-    {
-        float exaggeration = iteration_counter < 250 ? 16.0f : 4.0f;
-
-        for (int k = 0; k < Pmatrix.outerSize();
-             ++k) // https://stackoverflow.com/questions/22421244/eigen-package-iterate-over-row-major-sparse-matrix
-        {
-            for (Eigen::SparseMatrix<double>::InnerIterator it(Pmatrix, k); it; ++it)
-            {
-                TsnePoint2D& pointR = embeddedPoints[it.row()];
-                TsnePoint2D& pointC = embeddedPoints[it.col()];
-
-                glm::vec2 diff = pointR.position - pointC.position;
-                float dist = diff.x * diff.x + diff.y * diff.y;
-
-                pointC.derivative += exaggeration * static_cast<float>(it.value()) * (diff / (1.0f + dist));
-            }
-        }
-    }
-
-    void updateAttractiveOUTDATED2()
-    {
-        double exageration = iteration_counter < 250 ? 16.0 : 4.0; // the early exaggeration is 4.0f
-
-        for (int n = 0; n < embeddedPoints.size(); n++)
-        {
-            // #ifdef INDEX_TRACKER
-            // TsnePoint2D& pointR = embeddedPoints[indexTracker[n]];
-            // #else
-            TsnePoint2D& pointR = embeddedPoints[n];
-            // #endif
-
-            glm::dvec2 dim{0.0f};
-
-            for (unsigned int i = row_P[n]; i < row_P[n + 1]; i++)
-            {
-                unsigned int col = col_P[i];
-                // #ifdef INDEX_TRACKER
-                // TsnePoint2D& pointC = embeddedPoints[indexTracker[col]];
-                // #else
-                TsnePoint2D& pointC = embeddedPoints[col];
-                // #endif
-
-                glm::dvec2 diff = pointC.position - pointR.position;
-                double d_ij = diff.x * diff.x + diff.y * diff.y;
-                double q_ij = 1.0 / (1.0 + d_ij);
-
-                dim += exageration * val_P[i] * q_ij * diff;
-            }
-
-            pointR.derivative += dim;
-        }
-    }
-
     void updateAttractive()
     {
         double exageration = iteration_counter < 250 ? 16.0 : 4.0; // the early exaggeration is 4.0f
@@ -457,16 +413,6 @@ class TSNE
 
     void setupEfficientPmatrix()
     {
-        // const double* values = Pmatrix.valuePtr();
-        // const int* innerIndices = Pmatrix.innerIndexPtr();
-        // const int* outerStarts = Pmatrix.outerIndexPtr();
-        // int nnz = Pmatrix.nonZeros();
-        // int rows = Pmatrix.rows();
-
-        // val_P.assign(values, values + nnz);
-        // col_P.assign(innerIndices, innerIndices + nnz);
-        // row_P.assign(outerStarts, outerStarts + rows + 1);
-
         std::size_t N = embeddedPoints.size();
 
         row_P = std::vector<unsigned int>(N + 1, 0u);
