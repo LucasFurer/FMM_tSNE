@@ -116,7 +116,7 @@ int main()
                       0.7,            // max_theta
                       1.25,           // cell_size
                       "MNIST_digits", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
-                      1000,           // data_size
+                      70000,          // data_size
                       30.0f,          // perplexity
                       216308u         // seed: 216308u, 592340823u, 4523u, 296343u
     );

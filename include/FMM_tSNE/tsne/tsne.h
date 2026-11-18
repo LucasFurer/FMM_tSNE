@@ -21,8 +21,8 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <cstddef>
-#include <filesystem>
 #include <glm/glm.hpp>
+#include <iostream>
 #include <limits>
 #include <map>
 #include <numbers>
@@ -80,9 +80,9 @@ class TSNE
 
         p_matrix = PMatrix(DataProcessing::PCA(MNIST_data::load_MNIST_images_fused(data_amount), 50),
                            MNIST_data::load_MNIST_labels_fused(data_amount),
-                           30);
+                           perplexity);
 
-        generateInitialPoints(data_amount, seed, false, 2.0);
+        generateInitialPoints(data_amount, seed, false);
 
         updateMinMaxPos();
 
@@ -124,9 +124,12 @@ class TSNE
 #endif
     }
 
+    TSNE(const TSNE& o) = delete;
+    TSNE& operator=(const TSNE& o) = delete;
+
     virtual ~TSNE()
     {
-        for (std::pair<const std::string, NBodySolver<TsnePoint2D>*> nBodySolverPointer : nBodySolvers)
+        for (const std::pair<const std::string, NBodySolver<TsnePoint2D>*>& nBodySolverPointer : nBodySolvers)
         {
             delete nBodySolverPointer.second;
         }
@@ -152,9 +155,9 @@ class TSNE
 
         p_matrix = PMatrix(DataProcessing::PCA(MNIST_data::load_MNIST_images_fused(data_amount), 50),
                            MNIST_data::load_MNIST_labels_fused(data_amount),
-                           30);
+                           perplexity);
 
-        generateInitialPoints(data_amount, seed, false, 2.0);
+        generateInitialPoints(data_amount, seed, false);
 
         updateMinMaxPos();
 
@@ -357,15 +360,15 @@ class TSNE
         const double QijTotal = qTotalGpu.compute(qTotalPosBuffer.data(), n);
 
         double totalCost = 0.0;
-        for (int row = 0; row < points_og.size(); row++)
+        for (int row = 0; row < points.size(); row++)
         {
-            const TsnePoint2D& row_point = points_og[row];
+            const TsnePoint2D& row_point = points[row];
 
-            glm::dvec2 dim{0.0f};
+            // glm::dvec2 dim{0.0f};
 
             for (unsigned int column = p_matrix.m_row_P[row]; column < p_matrix.m_row_P[row + 1]; column++)
             {
-                const TsnePoint2D& col_point = points_og[p_matrix.m_col_P[column]];
+                const TsnePoint2D& col_point = points[p_matrix.m_col_P[column]];
 
                 glm::dvec2 diff = col_point.position - row_point.position;
                 double distance_squared = diff.x * diff.x + diff.y * diff.y;
@@ -373,7 +376,8 @@ class TSNE
 
                 double Pij = p_matrix.m_val_P[column];
 
-                totalCost += Pij * std::log2(Pij / Qij);
+                // totalCost += Pij * std::log2(Pij / Qij);
+                totalCost += Pij * std::log(Pij / Qij);
             }
         }
 
@@ -381,7 +385,7 @@ class TSNE
         return totalCost;
     }
 
-    void generateInitialPoints(int data_amount, unsigned int seed, bool random, double starting_range)
+    void generateInitialPoints(int data_amount, unsigned int seed, bool random)
     {
         embeddedPoints.resize(data_amount);
         embeddedPointsPrev.resize(data_amount);

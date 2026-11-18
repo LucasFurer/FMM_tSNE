@@ -134,53 +134,7 @@ public:
     )
     {
         C_nthreads = 1u;
-
         C_N = points.size();
-
-        // C_inp_row_P = new unsigned int[C_N + 1];
-        // C_inp_col_P = new unsigned int[Pmatrix.nonZeros()];
-        // C_inp_val_P = new double[Pmatrix.nonZeros()];
-
-        // int PmatrixCounter = 0;
-
-        // std::vector<SparseEntryCOO2D> sparse_matrix_COO(Pmatrix.nonZeros());
-        // for (int k = 0; k < Pmatrix.outerSize(); ++k) // https://stackoverflow.com/questions/22421244/eigen-package-iterate-over-row-major-sparse-matrix
-        // {
-        //     for (Eigen::SparseMatrix<double>::InnerIterator it(Pmatrix, k); it; ++it)
-        //     {
-        //         sparse_matrix_COO[PmatrixCounter] = SparseEntryCOO2D(it.col(), it.row(), it.value());
-
-        //         PmatrixCounter++;
-        //     }
-        // }
-        // std::sort
-        // (
-        //     sparse_matrix_COO.begin(),
-        //     sparse_matrix_COO.end(),
-        //     [](const SparseEntryCOO2D& a, const SparseEntryCOO2D& b) -> bool
-        //     {
-        //         if (a.row != b.row)
-        //             return a.row < b.row;
-        //         else
-        //             return a.col < b.col;
-        //     }
-        // );
-        // C_inp_row_P[0] = 0;
-        // int entryCounter = 0;
-        // for (int r = 0; r < C_N; r++) // go over each row
-        // {
-        //     int amount_in_row = 0;
-
-        //     while (entryCounter < Pmatrix.nonZeros() && sparse_matrix_COO[entryCounter].row == r)
-        //     {
-        //         C_inp_col_P[entryCounter] = sparse_matrix_COO[entryCounter].col;
-        //         C_inp_val_P[entryCounter] = sparse_matrix_COO[entryCounter].val;
-        //         amount_in_row++;
-        //         entryCounter++;
-        //     }
-
-        //     C_inp_row_P[r + 1] = C_inp_row_P[r] + amount_in_row;
-        // }
 
         C_Y = new double[C_N * 2];
         C_dC = new double[C_N * 2];
@@ -207,30 +161,16 @@ public:
         this->cell_size = other.cell_size;
         C_min_num_intervals = other.C_min_num_intervals;
 
-        // C_inp_row_P = new unsigned int[C_N + 1];
-        // std::copy(other.C_inp_row_P, other.C_inp_row_P + other.C_N + 1, C_inp_row_P);
-
-        // C_inp_col_P = new unsigned int[C_inp_row_P[C_N]];
-        // std::copy(other.C_inp_col_P, other.C_inp_col_P + other.C_inp_row_P[other.C_N], C_inp_col_P);
-        // C_inp_val_P = new double[C_inp_row_P[C_N]];
-        // std::copy(other.C_inp_val_P, other.C_inp_val_P + other.C_inp_row_P[other.C_N], C_inp_val_P);
-
         C_Y = new double[C_N * 2];
         std::copy(other.C_Y, other.C_Y + 2 * other.C_N, C_Y);
         C_dC = new double[C_N * 2];
         std::copy(other.C_dC, other.C_dC + 2 * other.C_N, C_dC);
-
-        //iteration_counter = other.iteration_counter;
     }
 
     NBodySolverPM& operator=(const NBodySolverPM& other) // copy assignment operator
     {
         if (this != &other) // self-assignment check
         {
-            // delete[] C_inp_row_P;
-            // delete[] C_inp_col_P;
-            // delete[] C_inp_val_P;
-
             delete[] C_Y;
 
             delete[] C_dC;
@@ -242,32 +182,17 @@ public:
             this->cell_size = other.cell_size;
             C_min_num_intervals = other.C_min_num_intervals;
 
-            // C_inp_row_P = new unsigned int[C_N + 1];
-            // std::copy(other.C_inp_row_P, other.C_inp_row_P + other.C_N + 1, C_inp_row_P);
-
-            // C_inp_col_P = new unsigned int[C_inp_row_P[C_N]];
-            // std::copy(other.C_inp_col_P, other.C_inp_col_P + other.C_inp_row_P[other.C_N], C_inp_col_P);
-            // C_inp_val_P = new double[C_inp_row_P[C_N]];
-            // std::copy(other.C_inp_val_P, other.C_inp_val_P + other.C_inp_row_P[other.C_N], C_inp_val_P);
-
             C_Y = new double[C_N * 2];
             std::copy(other.C_Y, other.C_Y + 2 * other.C_N, C_Y);
             C_dC = new double[C_N * 2];
             std::copy(other.C_dC, other.C_dC + 2 * other.C_N, C_dC);
-
-            //iteration_counter = other.iteration_counter;
         }
         return *this;
     }
 
     ~NBodySolverPM()
     {
-        // delete[] C_inp_row_P;
-        // delete[] C_inp_col_P;
-        // delete[] C_inp_val_P;
-
         delete[] C_Y;
-
         delete[] C_dC;
     }
 
@@ -283,9 +208,6 @@ public:
         computeFftGradient
         (
             nullptr,
-            // C_inp_row_P,
-            // C_inp_col_P,
-            // C_inp_val_P,
             C_Y,
             C_N,
             C_D,
