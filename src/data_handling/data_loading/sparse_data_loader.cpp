@@ -1,4 +1,4 @@
-#include <FMM_tSNE/data_handling/sparse_data_loader.h>
+#include <FMM_tSNE/data_handling/data_loading/sparse_data_loader.h>
 
 #include <cstddef>
 #include <cstdint>

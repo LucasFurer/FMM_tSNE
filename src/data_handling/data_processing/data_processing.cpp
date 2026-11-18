@@ -1,7 +1,6 @@
-#include <FMM_tSNE/data_handling/data_processing.h>
+#include <FMM_tSNE/data_handling/data_processing/data_processing.h>
 
 #include <Eigen/Dense>
-#include <FMM_tSNE/data_handling/MNIST_data.h>
 #include <stdexcept>
 #include <vector>
 

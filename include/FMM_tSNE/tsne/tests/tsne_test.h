@@ -540,7 +540,7 @@ class TsneTest
             tsne.updateDerivative();
             if (t % 10 == 0)
             {
-                costs[t] = TSNE::costFunction(tsne.embeddedPoints, tsne.Pmatrix);
+                costs[t] = TSNE::costFunction(tsne.embeddedPoints, tsne.p_matrix);
 
                 if (t > 0)
                 {
@@ -614,7 +614,7 @@ class TsneTest
                 tsne.updatePoints();
             }
 
-            finalCost[t] = TSNE::costFunction(tsne.embeddedPoints, tsne.Pmatrix);
+            finalCost[t] = TSNE::costFunction(tsne.embeddedPoints, tsne.p_matrix);
 
             calculationtime[t] /= iteration_amount;
         }

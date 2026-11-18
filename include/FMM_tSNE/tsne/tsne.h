@@ -1,10 +1,10 @@
 #pragma once
 
-#include <FMM_tSNE/data_handling/MNIST_data.h>
-#include <FMM_tSNE/data_handling/P_matrix.h>
-#include <FMM_tSNE/data_handling/sparse_data_loader.h>
-#include <FMM_tSNE/data_handling/sparse_entries/sparse_entry_COO_2D.h>
-#include <FMM_tSNE/data_handling/sparse_entries/sparse_entry_CSC_2D.h>
+#include <FMM_tSNE/data_handling/data_entries/sparse_entry_COO_2D.h>
+#include <FMM_tSNE/data_handling/data_entries/sparse_entry_CSC_2D.h>
+#include <FMM_tSNE/data_handling/data_loading/MNIST_data.h>
+#include <FMM_tSNE/data_handling/data_loading/sparse_data_loader.h>
+#include <FMM_tSNE/data_handling/data_processing/data_processing.h>
 #include <FMM_tSNE/opengl_interaction/scene.h>
 #include <FMM_tSNE/timer/timer.h>
 #include <FMM_tSNE/tsne/Q_total_cuda.h>
@@ -12,6 +12,7 @@
 #include <FMM_tSNE/tsne/solvers/BH/solver_BH.h>
 #include <FMM_tSNE/tsne/solvers/FMM/solver_FMM.h>
 #include <FMM_tSNE/tsne/solvers/PM/solver_PM.h>
+#include <FMM_tSNE/tsne/solvers/P_matrix/P_matrix.h>
 #include <FMM_tSNE/tsne/solvers/SFMM/solver_SFMM.h>
 #include <FMM_tSNE/tsne/solvers/naive/solver_naive.h>
 #include <FMM_tSNE/tsne/solvers/naive_GPU/solver_naive_GPU.h>
@@ -49,11 +50,7 @@ class TSNE
 
     double learnRate{0.0};
 
-    std::vector<uint8_t> labels;
-    Eigen::SparseMatrix<double> Pmatrix;
-    std::vector<unsigned int> row_P;
-    std::vector<unsigned int> col_P;
-    std::vector<double> val_P;
+    PMatrix p_matrix;
 
     int iteration_counter{0}; // keeps track of which iteration we are on
 
@@ -81,24 +78,10 @@ class TSNE
 
         learnRate = static_cast<double>(data_amount) / 15.0;
 
-        std::filesystem::path labelsPath =
-            std::filesystem::current_path() /
-            ("data/" + dataSet + "/" + std::to_string(data_amount) + "/label_amount" + std::to_string(data_amount) +
-             "_perp" + std::to_string((int) perplexity) + ".bin");
-        std::filesystem::path fileName =
-            std::filesystem::current_path() /
-            ("data/" + dataSet + "/" + std::to_string(data_amount) + "/P_matrix_amount" + std::to_string(data_amount) +
-             "_perp" + std::to_string((int) perplexity) + ".mtx");
-        labels = SparseDataLoader::loadLabels(labelsPath.string());
-        Pmatrix = SparseDataLoader::loadPmatrix(fileName.string());
+        p_matrix = PMatrix(
+            DataProcessing::PCA(MNIST_data::load_MNIST_images_fused(), 50), MNIST_data::load_MNIST_labels_fused(), 30);
 
         generateInitialPoints(data_amount, seed, false, 2.0);
-
-        // setupEfficientPmatrix();
-        PMatrix P_matrix;
-        row_P = P_matrix.row_P;
-        col_P = P_matrix.col_P;
-        val_P = P_matrix.val_P;
 
         updateMinMaxPos();
 
@@ -121,7 +104,7 @@ class TSNE
         //     &TSNEFMMNNKernel, &TSNEFMMPNKernel, &TSNEFMMNPKernel, &TSNEFMMPPKernel, max_children_per_node,
         //     max_theta);
         // nBodySolvers["FMM"]->updateTree(embeddedPoints, minPos, maxPos);
-        nBodySolvers["PM"] = new NBodySolverPM<TsnePoint2D>(Pmatrix, embeddedPoints, 4, cell_size, 4);
+        nBodySolvers["PM"] = new NBodySolverPM<TsnePoint2D>(embeddedPoints, 4, cell_size, 4);
         nBodySolvers["PM"]->updateTree(embeddedPoints, minPos, maxPos);
 #ifdef INDEX_TRACKER
         // nBodySolvers["FMM_MORTON"] = new NBodySolverFMM_MORTON<TsnePoint2D>(
@@ -166,24 +149,10 @@ class TSNE
 
         learnRate = static_cast<double>(data_amount) / 15.0;
 
-        std::filesystem::path labelsPath =
-            std::filesystem::current_path() /
-            ("data/" + dataSet + "/" + std::to_string(data_amount) + "/label_amount" + std::to_string(data_amount) +
-             "_perp" + std::to_string((int) perplexity) + ".bin");
-        std::filesystem::path fileName =
-            std::filesystem::current_path() /
-            ("data/" + dataSet + "/" + std::to_string(data_amount) + "/P_matrix_amount" + std::to_string(data_amount) +
-             "_perp" + std::to_string((int) perplexity) + ".mtx");
-        labels = SparseDataLoader::loadLabels(labelsPath.string());
-        Pmatrix = SparseDataLoader::loadPmatrix(fileName.string());
+        p_matrix = PMatrix(
+            DataProcessing::PCA(MNIST_data::load_MNIST_images_fused(), 50), MNIST_data::load_MNIST_labels_fused(), 30);
 
         generateInitialPoints(data_amount, seed, false, 2.0);
-
-        setupEfficientPmatrix();
-        // PMatrix P_matrix;
-        // row_P = P_matrix.row_P;
-        // col_P = P_matrix.col_P;
-        // val_P = P_matrix.val_P;
 
         updateMinMaxPos();
 
@@ -347,23 +316,23 @@ class TSNE
 
             glm::dvec2 dim{0.0f};
 
-            for (unsigned int i = row_P[n]; i < row_P[n + 1]; i++)
+            for (unsigned int i = p_matrix.m_row_P[n]; i < p_matrix.m_row_P[n + 1]; i++)
             {
-                unsigned int col = col_P[i];
+                unsigned int col = p_matrix.m_col_P[i];
                 TsnePoint2D& pointC = embeddedPoints[col];
 
                 glm::dvec2 diff = pointC.position - pointR.position;
                 double d_ij = diff.x * diff.x + diff.y * diff.y;
                 double q_ij = 1.0 / (1.0 + d_ij);
 
-                dim += exageration * val_P[i] * q_ij * diff;
+                dim += exageration * p_matrix.m_val_P[i] * q_ij * diff;
             }
 
             pointR.derivative += dim;
         }
     }
 
-    static double costFunction(const std::vector<TsnePoint2D>& points_og, Eigen::SparseMatrix<double>& Pmatrix)
+    static double costFunction(const std::vector<TsnePoint2D>& points_og, PMatrix& p_matrix)
     {
         std::vector<TsnePoint2D> points = points_og;
 
@@ -386,77 +355,28 @@ class TSNE
         const double QijTotal = qTotalGpu.compute(qTotalPosBuffer.data(), n);
 
         double totalCost = 0.0;
-        // https://stackoverflow.com/questions/22421244/eigen-package-iterate-over-row-major-sparse-matrix
-        for (int k = 0; k < Pmatrix.outerSize(); ++k)
+        for (int row = 0; row < points_og.size(); row++)
         {
-            for (Eigen::SparseMatrix<double>::InnerIterator it(Pmatrix, k); it; ++it)
+            const TsnePoint2D& row_point = points_og[row];
+
+            glm::dvec2 dim{0.0f};
+
+            for (unsigned int column = p_matrix.m_row_P[row]; column < p_matrix.m_row_P[row + 1]; column++)
             {
-                if (it.col() != it.row())
-                {
-                    const TsnePoint2D& point_col = points[it.col()];
-                    const TsnePoint2D& point_row = points[it.row()];
+                const TsnePoint2D& col_point = points_og[p_matrix.m_col_P[column]];
 
-                    glm::dvec2 diff = point_col.position - point_row.position;
-                    double distance_squared = diff.x * diff.x + diff.y * diff.y;
-                    double Qij = static_cast<double>(1.0 / (1.0 + distance_squared)) / QijTotal;
+                glm::dvec2 diff = col_point.position - row_point.position;
+                double distance_squared = diff.x * diff.x + diff.y * diff.y;
+                double Qij = (1.0 / (1.0 + distance_squared)) / QijTotal;
 
-                    double Pij = it.value();
+                double Pij = p_matrix.m_val_P[column];
 
-                    totalCost += Pij * std::log2(Pij / Qij);
-                }
+                totalCost += Pij * std::log2(Pij / Qij);
             }
         }
 
         std::cout << "total cost: " << totalCost << std::endl;
         return totalCost;
-    }
-
-    void setupEfficientPmatrix()
-    {
-        std::size_t N = embeddedPoints.size();
-
-        row_P = std::vector<unsigned int>(N + 1, 0u);
-        col_P = std::vector<unsigned int>(Pmatrix.nonZeros(), 0u);
-        val_P = std::vector<double>(Pmatrix.nonZeros(), 0.0);
-
-        int PmatrixCounter = 0;
-
-        std::vector<SparseEntryCOO2D> sparse_matrix_COO(Pmatrix.nonZeros());
-        for (int k = 0; k < Pmatrix.outerSize();
-             ++k) // https://stackoverflow.com/questions/22421244/eigen-package-iterate-over-row-major-sparse-matrix
-        {
-            for (Eigen::SparseMatrix<double>::InnerIterator it(Pmatrix, k); it; ++it)
-            {
-                sparse_matrix_COO[PmatrixCounter] = SparseEntryCOO2D(it.col(), it.row(), it.value());
-
-                PmatrixCounter++;
-            }
-        }
-        std::sort(sparse_matrix_COO.begin(),
-                  sparse_matrix_COO.end(),
-                  [](const SparseEntryCOO2D& a, const SparseEntryCOO2D& b) -> bool
-                  {
-                      if (a.row != b.row)
-                          return a.row < b.row;
-                      else
-                          return a.col < b.col;
-                  });
-        row_P[0] = 0;
-        int entryCounter = 0;
-        for (int r = 0; r < N; r++) // go over each row
-        {
-            int amount_in_row = 0;
-
-            while (entryCounter < Pmatrix.nonZeros() && sparse_matrix_COO[entryCounter].row == r)
-            {
-                col_P[entryCounter] = sparse_matrix_COO[entryCounter].col;
-                val_P[entryCounter] = sparse_matrix_COO[entryCounter].val;
-                amount_in_row++;
-                entryCounter++;
-            }
-
-            row_P[r + 1] = row_P[r] + amount_in_row;
-        }
     }
 
     void generateInitialPoints(int data_amount, unsigned int seed, bool random, double starting_range)
@@ -484,7 +404,7 @@ class TSNE
         {
             glm::dvec2 pos = glm::dvec2(dist(gen), dist(gen));
 
-            int lab = labels[i];
+            int lab = p_matrix.m_labels[i];
 
 #ifdef INDEX_TRACKER
             embeddedPoints[i] = TsnePoint2D(pos, glm::dvec2(0.0), lab, i, 0.0);

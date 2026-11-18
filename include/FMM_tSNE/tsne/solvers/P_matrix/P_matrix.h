@@ -1,52 +1,66 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <FMM_tSNE/data_handling/MNIST_data.h>
-#include <FMM_tSNE/data_handling/data_processing.h>
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include <vector>
 
 class PMatrix
 {
   public:
-    std::vector<unsigned int> row_P;
-    std::vector<unsigned int> col_P;
-    std::vector<double> val_P;
+    std::vector<unsigned int> m_row_P;
+    std::vector<unsigned int> m_col_P;
+    std::vector<double> m_val_P;
+
+    std::vector<uint8_t> m_labels;
 
     std::vector<std::vector<float>> P;
     std::vector<float> sigma;
 
-    PMatrix()
+    PMatrix() = default;
+
+    PMatrix(const std::vector<std::vector<float>>& data, const std::vector<uint8_t>& labels, float perplexity)
     {
-        auto data_images_70k = MNIST_data::load_MNIST_images_fused();
-        auto data_labels_70k = MNIST_data::load_MNIST_labels_fused();
-
-        auto data_images_70k_reduced = DataProcessing::PCA(data_images_70k, 50);
-
-        float perplexity = 30.0f;
+        std::vector<uint8_t> data_labels_1k;
+        std::ranges::copy(labels.begin(), labels.begin() + 1000, std::back_inserter(data_labels_1k));
+        m_labels = data_labels_1k;
 
         std::vector<std::vector<float>> data_images_1k_reduced;
-        std::ranges::copy(data_images_70k_reduced.begin(),
-                          data_images_70k_reduced.begin() + 1000,
-                          std::back_inserter(data_images_1k_reduced));
+        std::ranges::copy(data.begin(), data.begin() + 1000, std::back_inserter(data_images_1k_reduced));
 
         P = compute_P(data_images_1k_reduced, perplexity);
+
+        make_P_sparse();
     }
 
     void make_P_sparse()
     {
-        for (size_t i{}; i < P.size(); ++i)
-        {
-            row_P.push_back(i * P.size());
+        const size_t n = P.size();
 
-            for (size_t j{}; j < P.size(); ++j)
+        m_col_P.clear();
+        m_row_P.clear();
+        m_val_P.clear();
+
+        // col_P : column pointers (size n+1)
+        // row_P : row indices     (size nnz)
+        m_row_P.reserve(n + 1);
+
+        for (size_t col{}; col < n; ++col)
+        {
+            m_row_P.push_back(static_cast<unsigned int>(m_val_P.size())); // start of this column
+
+            for (size_t row{}; row < n; ++row)
             {
-                col_P.push_back(j);
-                val_P.push_back(P[j][i]);
+                if (P[row][col] != 0.0f)
+                {
+                    m_col_P.push_back(static_cast<unsigned int>(row));
+                    m_val_P.push_back(P[row][col]);
+                }
             }
         }
+        m_row_P.push_back(static_cast<unsigned int>(m_val_P.size())); // final entry = nnz
     }
 
     std::vector<std::vector<float>> compute_P(const std::vector<std::vector<float>>& data, float perplexity)

@@ -102,7 +102,7 @@ class TSNE_buffers final : public TSNE
             thousand_iteration_timer.endTimer("A thousand iterations");
             std::cout << thousand_iteration_timer.elapsed_time() << "\n";
 
-            TSNE::costFunction(this->embeddedPoints, this->Pmatrix);
+            TSNE::costFunction(this->embeddedPoints, this->p_matrix);
         }
 
         if (glfwGetTime() - time_since_last_iteration >= 1.0 / static_cast<double>(desired_iteration_per_second))

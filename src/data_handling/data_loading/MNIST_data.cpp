@@ -1,4 +1,4 @@
-#include <FMM_tSNE/data_handling/MNIST_data.h>
+#include <FMM_tSNE/data_handling/data_loading/MNIST_data.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -54,7 +54,7 @@ std::vector<std::vector<float>> load_MNIST_images(std::string& path)
     uint32_t amount = get_next_four_bytes(in_strm);
     uint32_t rows = get_next_four_bytes(in_strm);
     uint32_t cols = get_next_four_bytes(in_strm);
-    std::print("magicNumber: {}\namount: {}\nrows: {}\ncols: {}\n", magicNumber, amount, rows, cols);
+    // std::print("magicNumber: {}\namount: {}\nrows: {}\ncols: {}\n", magicNumber, amount, rows, cols);
 
     size_t entry_byte_size = static_cast<size_t>(rows) * static_cast<size_t>(cols);
     std::vector<std::vector<float>> result(amount, std::vector<float>(entry_byte_size, 0.0));
@@ -82,7 +82,7 @@ std::vector<uint8_t> load_MNIST_labels(std::string& path)
 
     uint32_t magicNumber = get_next_four_bytes(in_strm);
     uint32_t amount = get_next_four_bytes(in_strm);
-    std::print("magicNumber: {}\namount: {}\n", magicNumber, amount);
+    // std::print("magicNumber: {}\namount: {}\n", magicNumber, amount);
 
     std::vector<uint8_t> result(amount);
 

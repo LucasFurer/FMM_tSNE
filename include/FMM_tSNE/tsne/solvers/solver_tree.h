@@ -2,20 +2,9 @@
 
 #include <FMM_tSNE/tsne/solvers/node.h>
 #include <FMM_tSNE/tsne/solvers/solver.h>
-#include <functional>
 #include <glm/glm.hpp>
 #include <utility>
 #include <vector>
-
-// #include "../../common.h"
-// #include "nBodySolver.h"
-// #include "../../trees/cpu/quadtree.h"
-// #include "../../particles/embeddedPoint.h"
-// #include "../../particles/Particle2D.h"
-// #include "../../policies/BH_policy.h"
-// #include "../../policies/rBH_policy.h"
-// #include "../../policies/MP_policy.h"
-// #include "../../policies/rMP_policy.h"
 
 template <typename T, typename Policy>
 class NBodySolverTree : public NBodySolver<T>

@@ -85,24 +85,16 @@
 #include <chrono>
 #include <FMM_tSNE/tsne/solvers/solver.h>
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
-#include <FMM_tSNE/data_handling/sparse_entries/sparse_entry_COO_2D.h>
-#include <FMM_tSNE/data_handling/sparse_entries/sparse_entry_CSC_2D.h>
-
-//#include "../../structs/sparseEntry2D.h"
-//#include "../../common.h"
-//#include "nBodySolver.h"
-//#include "../../particles/embeddedPoint.h"
-//#include "../../particles/tsnePoint2D.h"
-//#include "../../particles/Particle2D.h"
-//#include "../../Timer.h"
+#include <FMM_tSNE/data_handling/data_entries/sparse_entry_COO_2D.h>
+#include <FMM_tSNE/data_handling/data_entries/sparse_entry_CSC_2D.h>
 
 template <typename T>
 class NBodySolverPM : public NBodySolver<T>
 {
 public:
-    unsigned int* C_inp_row_P = nullptr; // row val of sparse matrix
-    unsigned int* C_inp_col_P = nullptr; // col val of sparse matrix
-    double* C_inp_val_P = nullptr; // scalar val of sparse matrix
+    // unsigned int* C_inp_row_P = nullptr; // row val of sparse matrix
+    // unsigned int* C_inp_col_P = nullptr; // col val of sparse matrix
+    // double* C_inp_val_P = nullptr; // scalar val of sparse matrix
 
     double* C_Y = nullptr; // embedded position array
     int C_N = 0; // number of points
@@ -126,15 +118,15 @@ public:
         C_nthreads(1u),
         C_n_interpolation_points(0),
         C_min_num_intervals(0),
-        C_inp_row_P(nullptr),
-        C_inp_col_P(nullptr),
-        C_inp_val_P(nullptr),
+        // C_inp_row_P(nullptr),
+        // C_inp_col_P(nullptr),
+        // C_inp_val_P(nullptr),
         C_Y(nullptr),
         C_dC(nullptr) {}
 
     NBodySolverPM
     (
-        Eigen::SparseMatrix<double>& Pmatrix, 
+        // Eigen::SparseMatrix<double>& Pmatrix, 
         std::vector<TsnePoint2D>& points, 
         int init_n_interpolation_points, 
         double init_intervals_per_integer, 
@@ -145,50 +137,50 @@ public:
 
         C_N = points.size();
 
-        C_inp_row_P = new unsigned int[C_N + 1];
-        C_inp_col_P = new unsigned int[Pmatrix.nonZeros()];
-        C_inp_val_P = new double[Pmatrix.nonZeros()];
+        // C_inp_row_P = new unsigned int[C_N + 1];
+        // C_inp_col_P = new unsigned int[Pmatrix.nonZeros()];
+        // C_inp_val_P = new double[Pmatrix.nonZeros()];
 
-        int PmatrixCounter = 0;
+        // int PmatrixCounter = 0;
 
-        std::vector<SparseEntryCOO2D> sparse_matrix_COO(Pmatrix.nonZeros());
-        for (int k = 0; k < Pmatrix.outerSize(); ++k) // https://stackoverflow.com/questions/22421244/eigen-package-iterate-over-row-major-sparse-matrix
-        {
-            for (Eigen::SparseMatrix<double>::InnerIterator it(Pmatrix, k); it; ++it)
-            {
-                sparse_matrix_COO[PmatrixCounter] = SparseEntryCOO2D(it.col(), it.row(), it.value());
+        // std::vector<SparseEntryCOO2D> sparse_matrix_COO(Pmatrix.nonZeros());
+        // for (int k = 0; k < Pmatrix.outerSize(); ++k) // https://stackoverflow.com/questions/22421244/eigen-package-iterate-over-row-major-sparse-matrix
+        // {
+        //     for (Eigen::SparseMatrix<double>::InnerIterator it(Pmatrix, k); it; ++it)
+        //     {
+        //         sparse_matrix_COO[PmatrixCounter] = SparseEntryCOO2D(it.col(), it.row(), it.value());
 
-                PmatrixCounter++;
-            }
-        }
-        std::sort
-        (
-            sparse_matrix_COO.begin(),
-            sparse_matrix_COO.end(),
-            [](const SparseEntryCOO2D& a, const SparseEntryCOO2D& b) -> bool
-            {
-                if (a.row != b.row)
-                    return a.row < b.row;
-                else
-                    return a.col < b.col;
-            }
-        );
-        C_inp_row_P[0] = 0;
-        int entryCounter = 0;
-        for (int r = 0; r < C_N; r++) // go over each row
-        {
-            int amount_in_row = 0;
+        //         PmatrixCounter++;
+        //     }
+        // }
+        // std::sort
+        // (
+        //     sparse_matrix_COO.begin(),
+        //     sparse_matrix_COO.end(),
+        //     [](const SparseEntryCOO2D& a, const SparseEntryCOO2D& b) -> bool
+        //     {
+        //         if (a.row != b.row)
+        //             return a.row < b.row;
+        //         else
+        //             return a.col < b.col;
+        //     }
+        // );
+        // C_inp_row_P[0] = 0;
+        // int entryCounter = 0;
+        // for (int r = 0; r < C_N; r++) // go over each row
+        // {
+        //     int amount_in_row = 0;
 
-            while (entryCounter < Pmatrix.nonZeros() && sparse_matrix_COO[entryCounter].row == r)
-            {
-                C_inp_col_P[entryCounter] = sparse_matrix_COO[entryCounter].col;
-                C_inp_val_P[entryCounter] = sparse_matrix_COO[entryCounter].val;
-                amount_in_row++;
-                entryCounter++;
-            }
+        //     while (entryCounter < Pmatrix.nonZeros() && sparse_matrix_COO[entryCounter].row == r)
+        //     {
+        //         C_inp_col_P[entryCounter] = sparse_matrix_COO[entryCounter].col;
+        //         C_inp_val_P[entryCounter] = sparse_matrix_COO[entryCounter].val;
+        //         amount_in_row++;
+        //         entryCounter++;
+        //     }
 
-            C_inp_row_P[r + 1] = C_inp_row_P[r] + amount_in_row;
-        }
+        //     C_inp_row_P[r + 1] = C_inp_row_P[r] + amount_in_row;
+        // }
 
         C_Y = new double[C_N * 2];
         C_dC = new double[C_N * 2];
@@ -215,13 +207,13 @@ public:
         this->cell_size = other.cell_size;
         C_min_num_intervals = other.C_min_num_intervals;
 
-        C_inp_row_P = new unsigned int[C_N + 1];
-        std::copy(other.C_inp_row_P, other.C_inp_row_P + other.C_N + 1, C_inp_row_P);
+        // C_inp_row_P = new unsigned int[C_N + 1];
+        // std::copy(other.C_inp_row_P, other.C_inp_row_P + other.C_N + 1, C_inp_row_P);
 
-        C_inp_col_P = new unsigned int[C_inp_row_P[C_N]];
-        std::copy(other.C_inp_col_P, other.C_inp_col_P + other.C_inp_row_P[other.C_N], C_inp_col_P);
-        C_inp_val_P = new double[C_inp_row_P[C_N]];
-        std::copy(other.C_inp_val_P, other.C_inp_val_P + other.C_inp_row_P[other.C_N], C_inp_val_P);
+        // C_inp_col_P = new unsigned int[C_inp_row_P[C_N]];
+        // std::copy(other.C_inp_col_P, other.C_inp_col_P + other.C_inp_row_P[other.C_N], C_inp_col_P);
+        // C_inp_val_P = new double[C_inp_row_P[C_N]];
+        // std::copy(other.C_inp_val_P, other.C_inp_val_P + other.C_inp_row_P[other.C_N], C_inp_val_P);
 
         C_Y = new double[C_N * 2];
         std::copy(other.C_Y, other.C_Y + 2 * other.C_N, C_Y);
@@ -235,9 +227,9 @@ public:
     {
         if (this != &other) // self-assignment check
         {
-            delete[] C_inp_row_P;
-            delete[] C_inp_col_P;
-            delete[] C_inp_val_P;
+            // delete[] C_inp_row_P;
+            // delete[] C_inp_col_P;
+            // delete[] C_inp_val_P;
 
             delete[] C_Y;
 
@@ -250,13 +242,13 @@ public:
             this->cell_size = other.cell_size;
             C_min_num_intervals = other.C_min_num_intervals;
 
-            C_inp_row_P = new unsigned int[C_N + 1];
-            std::copy(other.C_inp_row_P, other.C_inp_row_P + other.C_N + 1, C_inp_row_P);
+            // C_inp_row_P = new unsigned int[C_N + 1];
+            // std::copy(other.C_inp_row_P, other.C_inp_row_P + other.C_N + 1, C_inp_row_P);
 
-            C_inp_col_P = new unsigned int[C_inp_row_P[C_N]];
-            std::copy(other.C_inp_col_P, other.C_inp_col_P + other.C_inp_row_P[other.C_N], C_inp_col_P);
-            C_inp_val_P = new double[C_inp_row_P[C_N]];
-            std::copy(other.C_inp_val_P, other.C_inp_val_P + other.C_inp_row_P[other.C_N], C_inp_val_P);
+            // C_inp_col_P = new unsigned int[C_inp_row_P[C_N]];
+            // std::copy(other.C_inp_col_P, other.C_inp_col_P + other.C_inp_row_P[other.C_N], C_inp_col_P);
+            // C_inp_val_P = new double[C_inp_row_P[C_N]];
+            // std::copy(other.C_inp_val_P, other.C_inp_val_P + other.C_inp_row_P[other.C_N], C_inp_val_P);
 
             C_Y = new double[C_N * 2];
             std::copy(other.C_Y, other.C_Y + 2 * other.C_N, C_Y);
@@ -270,9 +262,9 @@ public:
 
     ~NBodySolverPM()
     {
-        delete[] C_inp_row_P;
-        delete[] C_inp_col_P;
-        delete[] C_inp_val_P;
+        // delete[] C_inp_row_P;
+        // delete[] C_inp_col_P;
+        // delete[] C_inp_val_P;
 
         delete[] C_Y;
 
@@ -291,9 +283,9 @@ public:
         computeFftGradient
         (
             nullptr,
-            C_inp_row_P,
-            C_inp_col_P,
-            C_inp_val_P,
+            // C_inp_row_P,
+            // C_inp_col_P,
+            // C_inp_val_P,
             C_Y,
             C_N,
             C_D,
@@ -768,12 +760,20 @@ private:
     // ----------------------- main function - computeFftGradient -----------------------------------------------------
 
     // Compute the gradient of the t-SNE cost function using the FFT interpolation based approximation
-    void computeFftGradient(double* P, unsigned int* inp_row_P, unsigned int* inp_col_P, double* inp_val_P, double* Y, int N, int D, double* dC,
-        int n_interpolation_points,
-        double intervals_per_integer,
-        int min_num_intervals,
-        unsigned int nthreads,
-        double& total)
+    void computeFftGradient(
+		double* P, 
+		// unsigned int* inp_row_P,
+		// unsigned int* inp_col_P,
+		// double* inp_val_P,
+		double* Y,
+		int N,
+		int D,
+		double* dC,
+		int n_interpolation_points,
+		double intervals_per_integer,
+		int min_num_intervals,
+		unsigned int nthreads,
+		double& total)
     {
         //fftw_init_threads();
         //fftw_plan_with_nthreads(1);

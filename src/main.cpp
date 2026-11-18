@@ -1,6 +1,6 @@
 #include <FMM_tSNE/app.h>
 #include <FMM_tSNE/cameras/two_D_camera.h>
-#include <FMM_tSNE/data_handling/P_matrix.h>
+#include <FMM_tSNE/tsne/tests/VP_test.h>
 #include <FMM_tSNE/tsne/tests/tsne_test.h>
 #include <FMM_tSNE/tsne/tsne_buffers.h>
 #include <glm/glm.hpp>
@@ -8,9 +8,9 @@
 
 int main()
 {
-    // PMatrix P_matrix;
-
     App app{};
+
+    VPTest::find_NN_test();
 
     // TsneTest tsne_test{};
     // tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
