@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <FMM_tSNE/tsne/solvers/P_matrix/VP_tree/VP_tree.h>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -23,44 +24,9 @@ class PMatrix
 
     PMatrix(const std::vector<std::vector<float>>& data, const std::vector<uint8_t>& labels, float perplexity)
     {
-        std::vector<uint8_t> data_labels_1k;
-        std::ranges::copy(labels.begin(), labels.begin() + 1000, std::back_inserter(data_labels_1k));
-        m_labels = data_labels_1k;
+        m_labels = labels;
 
-        std::vector<std::vector<float>> data_images_1k_reduced;
-        std::ranges::copy(data.begin(), data.begin() + 1000, std::back_inserter(data_images_1k_reduced));
-
-        P = compute_P(data_images_1k_reduced, perplexity);
-
-        make_P_sparse();
-    }
-
-    void make_P_sparse()
-    {
-        const size_t n = P.size();
-
-        m_col_P.clear();
-        m_row_P.clear();
-        m_val_P.clear();
-
-        // col_P : column pointers (size n+1)
-        // row_P : row indices     (size nnz)
-        m_row_P.reserve(n + 1);
-
-        for (size_t col{}; col < n; ++col)
-        {
-            m_row_P.push_back(static_cast<unsigned int>(m_val_P.size())); // start of this column
-
-            for (size_t row{}; row < n; ++row)
-            {
-                if (P[row][col] != 0.0f)
-                {
-                    m_col_P.push_back(static_cast<unsigned int>(row));
-                    m_val_P.push_back(P[row][col]);
-                }
-            }
-        }
-        m_row_P.push_back(static_cast<unsigned int>(m_val_P.size())); // final entry = nnz
+        P = compute_P(data, perplexity);
     }
 
     std::vector<std::vector<float>> compute_P(const std::vector<std::vector<float>>& data, float perplexity)
@@ -69,8 +35,6 @@ class PMatrix
 
         const std::vector<std::vector<float>> sq_dist = sq_dist_matrix(data);
         const std::vector<std::vector<float>> P_cond = compute_conditional_P(sq_dist, perplexity);
-
-        // const std::vector<float> normalization = compute_normalization(sq_dist);
 
         std::vector<std::vector<float>> result(n, std::vector<float>(n));
         for (size_t i{}; i < n; ++i)
@@ -169,52 +133,23 @@ class PMatrix
         return std::pair{sum, entropy_bits};
     };
 
-    // std::vector<float> compute_normalization(const std::vector<std::vector<float>>& sq_dist)
-    // {
-    //     const auto n{sq_dist.size()};
-
-    //     std::vector<float> normalization(n);
-    //     for (size_t i{}; i < n; ++i)
-    //     {
-    //         for (size_t j{}; j < n; ++j)
-    //         {
-    //             if (i == j) continue;
-    //             normalization[i] += minus_exp_d_ij_sq(i, j, sq_dist);
-    //         }
-    //     }
-    //     return normalization;
-    // }
-
-    // float compute_unsymmetric_P(size_t i,
-    //                             size_t j,
-    //                             const std::vector<std::vector<float>>& sq_dist,
-    //                             const std::vector<float>& precomputed_exp_minus_d)
-    // {
-    //     return minus_exp_d_ij_sq(i, j, sq_dist) / precomputed_exp_minus_d[i];
-    // }
-
-    // float minus_exp_d_ij_sq(size_t i, size_t j, const std::vector<std::vector<float>>& sq_dist)
-    // {
-    //     float sigma_i = 0.5f;
-
-    //     return std::exp(-sq_dist[i][j] / (2.0f * sigma_i * sigma_i));
-    // }
-
     std::vector<std::vector<float>> sq_dist_matrix(const std::vector<std::vector<float>>& data)
     {
-        const auto n{data.size()};
-        std::vector<std::vector<float>> sq_dist(n, std::vector<float>(n));
+        // this should use VPTree
 
-        for (size_t i{}; i < n; ++i)
-        {
-            for (size_t j{i + 1}; j < n; ++j)
-            {
-                sq_dist[i][j] = sq_euclidean_dist(data[i], data[j]);
-                sq_dist[j][i] = sq_dist[i][j];
-            }
-        }
+        // const auto n{data.size()};
+        // std::vector<std::vector<float>> sq_dist(n, std::vector<float>(n));
 
-        return sq_dist;
+        // for (size_t i{}; i < n; ++i)
+        // {
+        //     for (size_t j{i + 1}; j < n; ++j)
+        //     {
+        //         sq_dist[i][j] = sq_euclidean_dist(data[i], data[j]);
+        //         sq_dist[j][i] = sq_dist[i][j];
+        //     }
+        // }
+
+        // return sq_dist;
     }
 
     float sq_euclidean_dist(const std::vector<float>& p1, const std::vector<float>& p2)
@@ -227,3 +162,31 @@ class PMatrix
         return squared_sum;
     }
 };
+
+// void make_P_sparse()
+// {
+//     const size_t n = P.size();
+
+//     m_col_P.clear();
+//     m_row_P.clear();
+//     m_val_P.clear();
+
+//     // col_P : column pointers (size n+1)
+//     // row_P : row indices     (size nnz)
+//     m_row_P.reserve(n + 1);
+
+//     for (size_t col{}; col < n; ++col)
+//     {
+//         m_row_P.push_back(static_cast<unsigned int>(m_val_P.size())); // start of this column
+
+//         for (size_t row{}; row < n; ++row)
+//         {
+//             if (P[row][col] != 0.0f)
+//             {
+//                 m_col_P.push_back(static_cast<unsigned int>(row));
+//                 m_val_P.push_back(P[row][col]);
+//             }
+//         }
+//     }
+//     m_row_P.push_back(static_cast<unsigned int>(m_val_P.size())); // final entry = nnz
+// }

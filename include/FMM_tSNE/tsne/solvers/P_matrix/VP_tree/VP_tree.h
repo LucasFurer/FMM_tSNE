@@ -5,23 +5,31 @@
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
+#include <queue>
 #include <random>
 #include <vector>
 
 class VPTree
 {
   public:
-    static constexpr size_t NONE = std::numeric_limits<size_t>::max();
-
     std::vector<VPNode> m_nodes;
     std::mt19937 gen{std::random_device{}()};
 
-    [[nodiscard]] size_t find_NN(const std::vector<std::vector<float>>& points, size_t q) const
+    [[nodiscard]] std::vector<size_t> find_kNN(const std::vector<std::vector<float>>& points, size_t q, size_t k) const
     {
-        size_t best = NONE;
-        float tau = std::numeric_limits<float>::infinity();
-        if (!m_nodes.empty()) search(points, 0, q, tau, best);
-        return best;
+        std::vector<size_t> NNs;
+        if (m_nodes.empty() || k == 0) return NNs;
+
+        std::priority_queue<std::pair<float, size_t>> heap;
+        search_k(points, 0, q, k, heap);
+
+        NNs.resize(heap.size());
+        for (size_t i{heap.size()}; i-- > 0;)
+        {
+            NNs[i] = heap.top().second;
+            heap.pop();
+        }
+        return NNs;
     }
 
     void create_VP_tree(const std::vector<std::vector<float>>& points)
@@ -86,17 +94,31 @@ class VPTree
         }
     }
 
-    void search(
-        const std::vector<std::vector<float>>& points, size_t n, size_t q, float& smallest_dist, size_t& closest) const
+    void search_k(const std::vector<std::vector<float>>& points,
+                  size_t n,
+                  size_t q,
+                  size_t k,
+                  std::priority_queue<std::pair<float, size_t>>& heap) const
     {
         const VPNode& node = m_nodes[n];
 
         const float dist = VPPoint::get_dist(points[q], points[node.p]);
-        if (node.p != q && dist < smallest_dist)
+
+        if (node.p != q)
         {
-            smallest_dist = dist;
-            closest = node.p;
+            if (heap.size() < k)
+            {
+                heap.emplace(dist, node.p);
+            }
+            else if (dist < heap.top().first)
+            {
+                heap.pop();
+                heap.emplace(dist, node.p);
+            }
         }
+
+        auto smallest_dist = [&]()
+        { return heap.size() < k ? std::numeric_limits<float>::infinity() : heap.top().first; };
 
         // Search the side q falls on first, then the other side only if
         // the ball of radius tau around q can reach across mu.
@@ -104,17 +126,13 @@ class VPTree
         // right: d(vp, point) >= mu  -> reachable if x + tau >= mu
         if (dist < node.mu)
         {
-            if (node.node_l != 0 && dist - smallest_dist < node.mu)
-                search(points, node.node_l, q, smallest_dist, closest);
-            if (node.node_r != 0 && dist + smallest_dist >= node.mu)
-                search(points, node.node_r, q, smallest_dist, closest);
+            if (node.node_l != 0 && dist - smallest_dist() < node.mu) search_k(points, node.node_l, q, k, heap);
+            if (node.node_r != 0 && dist + smallest_dist() >= node.mu) search_k(points, node.node_r, q, k, heap);
         }
         else
         {
-            if (node.node_r != 0 && dist + smallest_dist >= node.mu)
-                search(points, node.node_r, q, smallest_dist, closest);
-            if (node.node_l != 0 && dist - smallest_dist < node.mu)
-                search(points, node.node_l, q, smallest_dist, closest);
+            if (node.node_r != 0 && dist + smallest_dist() >= node.mu) search_k(points, node.node_r, q, k, heap);
+            if (node.node_l != 0 && dist - smallest_dist() < node.mu) search_k(points, node.node_l, q, k, heap);
         }
     }
 };

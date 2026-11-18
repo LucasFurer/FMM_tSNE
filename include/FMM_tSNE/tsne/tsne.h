@@ -78,8 +78,9 @@ class TSNE
 
         learnRate = static_cast<double>(data_amount) / 15.0;
 
-        p_matrix = PMatrix(
-            DataProcessing::PCA(MNIST_data::load_MNIST_images_fused(), 50), MNIST_data::load_MNIST_labels_fused(), 30);
+        p_matrix = PMatrix(DataProcessing::PCA(MNIST_data::load_MNIST_images_fused(data_amount), 50),
+                           MNIST_data::load_MNIST_labels_fused(data_amount),
+                           30);
 
         generateInitialPoints(data_amount, seed, false, 2.0);
 
@@ -149,8 +150,9 @@ class TSNE
 
         learnRate = static_cast<double>(data_amount) / 15.0;
 
-        p_matrix = PMatrix(
-            DataProcessing::PCA(MNIST_data::load_MNIST_images_fused(), 50), MNIST_data::load_MNIST_labels_fused(), 30);
+        p_matrix = PMatrix(DataProcessing::PCA(MNIST_data::load_MNIST_images_fused(data_amount), 50),
+                           MNIST_data::load_MNIST_labels_fused(data_amount),
+                           30);
 
         generateInitialPoints(data_amount, seed, false, 2.0);
 

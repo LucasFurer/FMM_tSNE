@@ -7,9 +7,9 @@
 
 namespace MNIST_data
 {
-std::vector<std::vector<float>> load_MNIST_images_fused();
+std::vector<std::vector<float>> load_MNIST_images_fused(size_t count);
 
-std::vector<uint8_t> load_MNIST_labels_fused();
+std::vector<uint8_t> load_MNIST_labels_fused(size_t count);
 
 std::vector<std::vector<float>> load_MNIST_images(std::string& path);
 

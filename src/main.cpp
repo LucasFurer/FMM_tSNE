@@ -10,7 +10,7 @@ int main()
 {
     App app{};
 
-    VPTest::find_NN_test();
+    // VPTest::find_NN_test();
 
     // TsneTest tsne_test{};
     // tsne_test.errorTimestepTSNE("MNIST_digits", // data_set
