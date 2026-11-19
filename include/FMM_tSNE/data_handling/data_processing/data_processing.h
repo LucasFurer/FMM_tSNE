@@ -1,7 +1,6 @@
 #pragma once
 
-#include <Eigen/Dense>
-#include <FMM_tSNE/data_handling/data_loading/MNIST_data.h>
+// #include <Eigen/Dense>
 #include <vector>
 
 namespace DataProcessing
