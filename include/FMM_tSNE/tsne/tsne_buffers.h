@@ -1,23 +1,18 @@
 #pragma once
 
+#include "FMM_tSNE/tsne/solvers/P_matrix/P_matrix.h"
 #include <FMM_tSNE/tsne/tsne.h>
 
+#include <FMM_tSNE/tsne/solvers/P_matrix/P_matrix.h>
 #include <GLFW/glfw3.h>
-#include <cmath>
-#include <cstddef>
-#include <exception>
-#include <filesystem>
 #include <glm/glm.hpp>
 // #include <glm/gtx/component_wise.hpp>
 // #include <glm/gtx/string_cast.hpp>
 #include <FMM_tSNE/opengl_interaction/buffer.h>
 #include <iostream>
-#include <limits>
 #include <map>
-#include <numbers>
 #include <string>
 #include <unsupported/Eigen/SparseExtra>
-#include <utility>
 #include <vector>
 
 class TSNE_buffers final : public TSNE
@@ -36,14 +31,9 @@ class TSNE_buffers final : public TSNE
 
     TSNE_buffers() = default;
 
-    TSNE_buffers(double init_min_theta,
-                 double init_max_theta,
-                 double init_cell_size,
-                 std::string dataSet,
-                 int data_amount,
-                 float perplexity,
-                 unsigned int seed)
-        : TSNE(init_min_theta, init_max_theta, init_cell_size, dataSet, data_amount, perplexity, seed)
+    TSNE_buffers(
+        double init_min_theta, double init_max_theta, double init_cell_size, const PMatrix& p_matrix, unsigned int seed)
+        : TSNE(init_min_theta, init_max_theta, init_cell_size, p_matrix, seed)
     {
         resetBuffers();
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <FMM_tSNE/tsne/points/tsne_point_2D.h>
+#include <FMM_tSNE/tsne/solvers/P_matrix/P_matrix.h>
 #include <FMM_tSNE/tsne/tsne.h>
 #include <GLFW/glfw3.h>
 #include <atomic>
@@ -30,20 +31,15 @@ class TsneTest
   public:
     TsneTest() {}
 
-    void errorTimestepTSNE(std::string dataset_type,
-                           int data_size,
-                           float perplexity_value,
-                           int iteration_amount,
-                           double theta,
-                           double cell_size,
-                           unsigned int seed)
+    void
+    errorTimestepTSNE(const PMatrix& p_matrix, int iteration_amount, double theta, double cell_size, unsigned int seed)
     {
-        TSNE tsne(theta, theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+        TSNE tsne(theta, theta, cell_size, p_matrix, seed);
 
-        std::vector<TsnePoint2D> naive_solution_rep(data_size);
-        std::vector<TsnePoint2D> fast_solution_rep(data_size);
+        std::vector<TsnePoint2D> naive_solution_rep(p_matrix.size());
+        std::vector<TsnePoint2D> fast_solution_rep(p_matrix.size());
 
-        std::vector<TsnePoint2D> naive_solution(data_size);
+        std::vector<TsnePoint2D> naive_solution(p_matrix.size());
 
         // set graph size
         std::vector<std::string> candidates;
@@ -110,13 +106,13 @@ class TsneTest
         }
 
         // write results to csv files
-        std::filesystem::path projectFolder = std::filesystem::current_path() / "graphCSV" / dataset_type /
-                                              std::to_string(data_size) /
-                                              ("perp" + std::to_string(static_cast<int>(perplexity_value)));
+        std::filesystem::path projectFolder = std::filesystem::current_path() / "graphCSV" / p_matrix.m_data_name /
+                                              std::to_string(p_matrix.size()) /
+                                              ("perp" + std::to_string(static_cast<int>(p_matrix.m_perplexity)));
 
-        std::string methodString =
-            ("_point" + std::to_string(data_size) + "_perp" + std::to_string(static_cast<int>(perplexity_value)) +
-             "_theta" + fltToStr(theta) + "_dataset" + dataset_type + ".csv");
+        std::string methodString = ("_point" + std::to_string(p_matrix.size()) + "_perp" +
+                                    std::to_string(static_cast<int>(p_matrix.m_perplexity)) + "_theta" +
+                                    fltToStr(theta) + "_dataset" + p_matrix.m_data_name + ".csv");
 
         for (std::string candidate : candidates)
         {
@@ -127,17 +123,19 @@ class TsneTest
         }
     }
 
-    void calculationtimeThetaTSNE(std::string dataset_type,
-                                  int data_size,
-                                  float perplexity_value,
+    void calculationtimeThetaTSNE(const PMatrix& p_matrix,
                                   int iteration_amount,
                                   std::vector<double> thetas,
                                   std::vector<double> cell_sizes,
                                   unsigned int seed)
     {
+        const std::string& dataset_type = p_matrix.m_data_name;
+        const int& data_size = p_matrix.size();
+        const float& perplexity_value = p_matrix.m_perplexity;
+
         int theta_diversity_amount = thetas.size();
 
-        TSNE tsne(thetas[0], thetas[0], cell_sizes[0], dataset_type, data_size, perplexity_value, seed);
+        TSNE tsne(thetas[0], thetas[0], cell_sizes[0], p_matrix, seed);
 
         std::vector<std::string> candidates;
         candidates.reserve(tsne.nBodySolvers.size());
@@ -163,8 +161,7 @@ class TsneTest
                        dataset_type,
                        data_size,
                        perplexity_value);
-            tsne.resetTsne(
-                chosen_theta, chosen_theta, chosen_cell_size, dataset_type, data_size, perplexity_value, seed);
+            tsne.resetTsne(chosen_theta, chosen_theta, chosen_cell_size, p_matrix, seed);
             std::print("done resetting\n");
 
             for (std::string candidate : candidates)
@@ -253,15 +250,17 @@ class TsneTest
         }
     }
 
-    void errorThetaTSNE(std::string dataset_type,
-                        int data_size,
-                        float perplexity_value,
+    void errorThetaTSNE(const PMatrix& p_matrix,
                         int iteration_amount,
                         std::vector<float> thetas,
                         std::vector<double> cell_sizes,
                         unsigned int seed)
     {
-        TSNE tsne(thetas[0], thetas[0], cell_sizes[0], dataset_type, data_size, perplexity_value, seed);
+        const std::string& dataset_type = p_matrix.m_data_name;
+        const int& data_size = p_matrix.size();
+        const float& perplexity_value = p_matrix.m_perplexity;
+
+        TSNE tsne(thetas[0], thetas[0], cell_sizes[0], p_matrix, seed);
 
         int theta_diversity_amount = thetas.size();
 
@@ -284,8 +283,7 @@ class TsneTest
             double chosen_theta = thetas[t];
             double chosen_cell_size = cell_sizes[t];
 
-            tsne.resetTsne(
-                chosen_theta, chosen_theta, chosen_cell_size, dataset_type, data_size, perplexity_value, seed);
+            tsne.resetTsne(chosen_theta, chosen_theta, chosen_cell_size, p_matrix, seed);
 
             for (std::string candidate : candidates)
             {
@@ -394,16 +392,18 @@ class TsneTest
         }
     }
 
-    void calculationtimeErrorTSNE(std::string dataset_type,
-                                  int data_size,
-                                  float perplexity_value,
+    void calculationtimeErrorTSNE(const PMatrix& p_matrix,
                                   int iteration_amount,
                                   std::vector<double> thetas,
                                   std::vector<double> cell_sizes,
                                   unsigned int seed)
     {
+        const std::string& dataset_type = p_matrix.m_data_name;
+        const int& data_size = p_matrix.size();
+        const float& perplexity_value = p_matrix.m_perplexity;
+
         // TSNE tsne(thetas[0], 3.0, cell_sizes[0], dataset_type, data_size, perplexity_value, seed);
-        TSNE tsne(thetas[0], thetas[0], cell_sizes[0], dataset_type, data_size, perplexity_value, seed);
+        TSNE tsne(thetas[0], thetas[0], cell_sizes[0], p_matrix, seed);
 
         int theta_diversity_amount = thetas.size();
 
@@ -429,8 +429,7 @@ class TsneTest
             double chosen_cell_size = cell_sizes[t];
 
             // tsne.resetTsne(chosen_theta, 3.0, chosen_cell_size, dataset_type, data_size, perplexity_value, seed);
-            tsne.resetTsne(
-                chosen_theta, chosen_theta, chosen_cell_size, dataset_type, data_size, perplexity_value, seed);
+            tsne.resetTsne(chosen_theta, chosen_theta, chosen_cell_size, p_matrix, seed);
 
             std::vector<TsnePoint2D> naive_solution_rep(data_size);
             std::vector<TsnePoint2D> fast_solution_rep(data_size);
@@ -508,9 +507,7 @@ class TsneTest
         }
     }
 
-    void costTimestepTSNE(std::string dataset_type,
-                          int data_size,
-                          float perplexity_value,
+    void costTimestepTSNE(const PMatrix& p_matrix,
                           int iteration_amount,
                           double min_theta,
                           double max_theta,
@@ -518,7 +515,11 @@ class TsneTest
                           unsigned int seed,
                           std::string method)
     {
-        TSNE tsne(min_theta, max_theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+        const std::string& dataset_type = p_matrix.m_data_name;
+        const int& data_size = p_matrix.size();
+        const float& perplexity_value = p_matrix.m_perplexity;
+
+        TSNE tsne(min_theta, max_theta, cell_size, p_matrix, seed);
 
         // set graph size
         std::vector<double> costs(iteration_amount, 0.0);
@@ -572,15 +573,18 @@ class TsneTest
         writeToFile(times, costs, methodPath);
     }
 
-    void calculationtimeCostTSNE(std::string dataset_type,
-                                 int data_size,
-                                 float perplexity_value,
+    void calculationtimeCostTSNE(const PMatrix& p_matrix,
+
                                  int iteration_amount,
                                  std::vector<double> thetas,
                                  std::vector<double> cell_sizes,
                                  unsigned int seed,
                                  std::string method)
     {
+        const std::string& dataset_type = p_matrix.m_data_name;
+        const int& data_size = p_matrix.size();
+        const float& perplexity_value = p_matrix.m_perplexity;
+
         int theta_diversity_amount = thetas.size();
         std::vector<double> calculationtime(theta_diversity_amount, 0.0f);
 
@@ -593,7 +597,7 @@ class TsneTest
             double chosenTheta = thetas[t];
             double chosenCellSize = cell_sizes[t];
 
-            TSNE tsne(chosenTheta, 3.0, chosenCellSize, dataset_type, data_size, perplexity_value, seed);
+            TSNE tsne(chosenTheta, 3.0, chosenCellSize, p_matrix, seed);
 
             double timeBefore = 0.0f;
             for (int j = 0; j < iteration_amount; j++)
@@ -631,15 +635,18 @@ class TsneTest
         writeToFile3(finalCost, calculationtime, thetas, methodPath);
     }
 
-    void calculationtimeError_MAXpoints_TSNE(std::string dataset_type,
-                                             int data_size,
-                                             float perplexity_value,
+    void calculationtimeError_MAXpoints_TSNE(const PMatrix p_matrix,
+
                                              int iteration_amount,
                                              std::vector<double> thetas,
                                              std::vector<int> max_points,
                                              unsigned int seed,
                                              std::string method)
     {
+        const std::string& dataset_type = p_matrix.m_data_name;
+        const int& data_size = p_matrix.size();
+        const float& perplexity_value = p_matrix.m_perplexity;
+
         for (size_t m = 0; m < max_points.size(); m++)
         {
             std::cout << "find calc time and error for max points: " << max_points[m] << std::endl;
@@ -656,7 +663,7 @@ class TsneTest
             {
                 double chosenTheta = thetas[t];
 
-                TSNE tsne(chosenTheta, chosenTheta, 1.0, dataset_type, data_size, perplexity_value, seed);
+                TSNE tsne(chosenTheta, chosenTheta, 1.0, p_matrix, seed);
 
                 double max_point = max_points[m];
                 tsne.nBodySolvers[method]->maxChildren = max_point;
@@ -774,16 +781,19 @@ class TsneTest
         }
     }
 
-    void time_accuracy_test(std::string dataset_type,
-                            int data_size,
-                            float perplexity_value,
+    void time_accuracy_test(const PMatrix& p_matrix,
+
                             int iteration_amount,
                             int repeat_count,
                             double theta,
                             double cell_size,
                             unsigned int seed)
     {
-        TSNE tsne(theta, theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+        const std::string& dataset_type = p_matrix.m_data_name;
+        const int& data_size = p_matrix.size();
+        const float& perplexity_value = p_matrix.m_perplexity;
+
+        TSNE tsne(theta, theta, cell_size, p_matrix, seed);
 
         std::vector<TsnePoint2D> naive_solution_rep(data_size);
         std::vector<TsnePoint2D> fast_solution_rep(data_size);
@@ -834,7 +844,7 @@ class TsneTest
 
         for (int r{}; r < repeat_count; ++r)
         {
-            tsne.resetTsne(theta, theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+            tsne.resetTsne(theta, theta, cell_size, p_matrix, seed);
             for (int t = 0; t < iteration_amount; t++)
             {
                 tsne.updateMinMaxPos();
@@ -861,15 +871,18 @@ class TsneTest
         std::cout << "time: " << total_time << "\n";
     }
 
-    void errorTimestepTSNE_Zaccum(std::string dataset_type,
-                                  int data_size,
-                                  float perplexity_value,
+    void errorTimestepTSNE_Zaccum(const PMatrix p_matrix,
+
                                   int iteration_amount,
                                   double theta,
                                   double cell_size,
                                   unsigned int seed)
     {
-        TSNE tsne(theta, theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+        const std::string& dataset_type = p_matrix.m_data_name;
+        const int& data_size = p_matrix.size();
+        const float& perplexity_value = p_matrix.m_perplexity;
+
+        TSNE tsne(theta, theta, cell_size, p_matrix, seed);
 
         std::vector<TsnePoint2D> naive_solution_rep(data_size);
         std::vector<TsnePoint2D> fast_solution_rep(data_size);
@@ -887,7 +900,7 @@ class TsneTest
 
         for (int factor{}; factor < factors.size(); ++factor)
         {
-            tsne.resetTsne(theta, theta, cell_size, dataset_type, data_size, perplexity_value, seed);
+            tsne.resetTsne(theta, theta, cell_size, p_matrix, seed);
 
             // find error at every time step
             for (int t = 0; t < iteration_amount; t++)

@@ -1,3 +1,4 @@
+#include "FMM_tSNE/tsne/solvers/P_matrix/P_matrix.h"
 #include <FMM_tSNE/app.h>
 #include <FMM_tSNE/cameras/two_D_camera.h>
 #include <FMM_tSNE/tsne/tests/VP_test.h>
@@ -113,13 +114,25 @@ int main()
     Shader shader_tsne = Shader((std::filesystem::current_path().string() + "/shaders/shader_tsne.vs").c_str(),
                                 (std::filesystem::current_path().string() + "/shaders/shader_tsne.fs").c_str());
 
-    TSNE_buffers tsne(0.7,            // min_theta
-                      0.7,            // max_theta
-                      1.25,           // cell_size
-                      "MNIST_digits", // data_set: "MNIST_digits", "MNIST_fashion", "mice_brain_cells", "CIFAR10"
-                      100000,         // data_size
-                      30.0f,          // perplexity
-                      216308u         // seed: 216308u, 592340823u, 4523u, 296343u
+    constexpr size_t data_size = 70000;
+
+    PMatrix p_matrix = PMatrix(
+        DataProcessing::PCA_sparse(
+            NeuronData::load_10x_h5("TSNE_data_input/neuron/1M_neurons_filtered_gene_bc_matrices_h5.h5", 0, data_size),
+            50),
+        std::vector<uint8_t>(data_size, 0u),
+        "neuron",
+        30.0f);
+    // PMatrix p_matrix = PMatrix(DataProcessing::PCA(MNIST_digit_data::load_MNIST_images_fused(data_size), 50),
+    //                            MNIST_digit_data::load_MNIST_labels_fused(data_size),
+    //                            "MNIST_digit",
+    //                            30.0f);
+
+    TSNE_buffers tsne(0.7,  // min_theta
+                      0.7,  // max_theta
+                      1.25, // cell_size
+                      p_matrix,
+                      216308u // seed: 216308u, 592340823u, 4523u, 296343u
     );
     tsne.nBodySelect = "FMM_SYM_MORTON";
     // tsne.nBodySelect = "FMM_MORTON";

@@ -23,16 +23,27 @@ class PMatrix
 
     std::vector<uint8_t> m_labels;
 
+    std::string m_data_name;
+
+    float m_perplexity;
+
     // Number of worker threads. 0 = std::thread::hardware_concurrency().
     size_t m_n_threads{0};
 
     PMatrix() = default;
 
-    PMatrix(const std::vector<std::vector<float>>& data, const std::vector<uint8_t>& labels, float perplexity)
-        : m_labels(labels)
+    PMatrix(const std::vector<std::vector<float>>& data,
+            const std::vector<uint8_t>& labels,
+            std::string data_name,
+            float perplexity)
+        : m_labels(labels),
+          m_data_name(std::move(data_name)),
+          m_perplexity(perplexity)
     {
         compute_P(data, perplexity);
     }
+
+    [[nodiscard]] size_t size() const { return m_row_P.empty() ? 0 : m_row_P.size() - 1; }
 
     void compute_P(const std::vector<std::vector<float>>& data, float perplexity)
     {

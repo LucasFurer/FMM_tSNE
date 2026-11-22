@@ -70,32 +70,22 @@ class TSNE
     TSNE(double init_min_theta,
          double init_max_theta,
          double init_cell_size,
-         std::string dataSet,
-         int data_amount,
-         float perplexity,
+         const PMatrix& in_p_matrix,
          unsigned int seed)
     {
         min_theta = init_min_theta;
         max_theta = init_max_theta;
         cell_size = init_cell_size;
 
-        learnRate = static_cast<double>(data_amount) / 15.0;
+        p_matrix = in_p_matrix;
 
-        p_matrix = PMatrix(DataProcessing::PCA_sparse(
-                               NeuronData::load_10x_h5(
-                                   "TSNE_data_input/neuron/1M_neurons_filtered_gene_bc_matrices_h5.h5", 0, data_amount),
-                               50),
-                           std::vector<uint8_t>(data_amount, 0u),
-                           perplexity);
-        // p_matrix = PMatrix(DataProcessing::PCA(MNIST_digit_data::load_MNIST_images_fused(data_amount), 50),
-        //                    MNIST_digit_data::load_MNIST_labels_fused(data_amount),
-        //                    perplexity);
+        learnRate = static_cast<double>(p_matrix.size()) / 15.0;
 
-        generateInitialPoints(data_amount, seed, false);
+        generateInitialPoints(p_matrix.size(), seed, false);
 
         updateMinMaxPos();
 
-        int max_children_per_node = 16;
+        int max_children_per_node = 32;
         // nBodySolvers["naive"] = new NBodySolverNaive<TsnePoint2D>(&TSNEnaiveKernel);
         nBodySolvers["naive"] = new NBodySolverNaiveCUDA<TsnePoint2D>();
         // nBodySolvers["BH"] = new NBodySolverTree<TsnePoint2D, Policy_BH>(max_children_per_node, max_theta);
@@ -149,9 +139,7 @@ class TSNE
     void resetTsne(double init_min_theta,
                    double init_max_theta,
                    double init_cell_size,
-                   std::string dataSet,
-                   int data_amount,
-                   float perplexity,
+                   const PMatrix& in_p_matrix,
                    unsigned int seed)
     {
         iteration_counter = 0;
@@ -160,19 +148,11 @@ class TSNE
         max_theta = init_max_theta;
         cell_size = init_cell_size;
 
-        learnRate = static_cast<double>(data_amount) / 15.0;
+        p_matrix = in_p_matrix;
 
-        p_matrix = PMatrix(DataProcessing::PCA_sparse(
-                               NeuronData::load_10x_h5(
-                                   "TSNE_data_input/neuron/1M_neurons_filtered_gene_bc_matrices_h5.h5", 0, data_amount),
-                               50),
-                           std::vector<uint8_t>(data_amount, 0u),
-                           perplexity);
-        // p_matrix = PMatrix(DataProcessing::PCA(MNIST_digit_data::load_MNIST_images_fused(data_amount), 50),
-        //                    MNIST_digit_data::load_MNIST_labels_fused(data_amount),
-        //                    perplexity);
+        learnRate = static_cast<double>(p_matrix.size()) / 15.0;
 
-        generateInitialPoints(data_amount, seed, false);
+        generateInitialPoints(p_matrix.size(), seed, false);
 
         updateMinMaxPos();
 
