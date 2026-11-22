@@ -18,11 +18,11 @@ std::vector<std::vector<float>> load_MNIST_images_fused(size_t count)
 {
     std::vector<std::vector<float>> result;
 
-    std::string path_images_60k = "TSNE_data_input/train-images-idx3-ubyte";
+    std::string path_images_60k = "TSNE_data_input/MNIST_digit/train-images-idx3-ubyte";
     auto data_images_60k = MNIST_digit_data::load_MNIST_images(path_images_60k);
     std::ranges::copy(data_images_60k.begin(), data_images_60k.end(), std::back_inserter(result));
 
-    std::string path_images_10k = "TSNE_data_input/t10k-images-idx3-ubyte";
+    std::string path_images_10k = "TSNE_data_input/MNIST_digit/t10k-images-idx3-ubyte";
     auto data_images_10k = MNIST_digit_data::load_MNIST_images(path_images_10k);
     std::ranges::copy(data_images_10k.begin(), data_images_10k.end(), std::back_inserter(result));
 
@@ -34,11 +34,11 @@ std::vector<uint8_t> load_MNIST_labels_fused(size_t count)
 {
     std::vector<uint8_t> result;
 
-    std::string path_labels_60k = "TSNE_data_input/train-labels-idx1-ubyte";
+    std::string path_labels_60k = "TSNE_data_input/MNIST_digit/train-labels-idx1-ubyte";
     auto data_labels_60k = MNIST_digit_data::load_MNIST_labels(path_labels_60k);
     std::ranges::copy(data_labels_60k.begin(), data_labels_60k.end(), std::back_inserter(result));
 
-    std::string path_labels_10k = "TSNE_data_input/t10k-labels-idx1-ubyte";
+    std::string path_labels_10k = "TSNE_data_input/MNIST_digit/t10k-labels-idx1-ubyte";
     auto data_labels_10k = MNIST_digit_data::load_MNIST_labels(path_labels_10k);
     std::ranges::copy(data_labels_10k.begin(), data_labels_10k.end(), std::back_inserter(result));
 

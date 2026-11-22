@@ -85,11 +85,13 @@ file(GLOB_RECURSE THIRD_PARTY_LIBS CONFIGURE_DEPENDS
 
 # things that cant be included in the project folder
 find_package(OpenGL REQUIRED)
+find_package(HDF5 REQUIRED COMPONENTS C)
 # find_package(CUDAToolkit REQUIRED)
 target_link_libraries(${TARGET_NAME}
   PRIVATE
     ${THIRD_PARTY_LIBS}
     OpenGL::GL
+    HDF5::HDF5
     ${CMAKE_DL_LIBS}
     # CUDA::cudart
     # CUDA::cublas

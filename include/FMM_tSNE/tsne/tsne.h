@@ -2,7 +2,9 @@
 
 #include <FMM_tSNE/data_handling/data_entries/sparse_entry_COO_2D.h>
 #include <FMM_tSNE/data_handling/data_entries/sparse_entry_CSC_2D.h>
+#include <FMM_tSNE/data_handling/data_entries/sparse_matrix.h>
 #include <FMM_tSNE/data_handling/data_loading/MNIST_digit_data.h>
+#include <FMM_tSNE/data_handling/data_loading/neuron_data.h>
 #include <FMM_tSNE/data_handling/data_loading/sparse_data_loader.h>
 #include <FMM_tSNE/data_handling/data_processing/data_processing.h>
 #include <FMM_tSNE/opengl_interaction/scene.h>
@@ -26,6 +28,7 @@
 #include <limits>
 #include <map>
 #include <numbers>
+#include <print>
 #include <random>
 #include <string>
 #include <unsupported/Eigen/SparseExtra>
@@ -78,9 +81,15 @@ class TSNE
 
         learnRate = static_cast<double>(data_amount) / 15.0;
 
-        p_matrix = PMatrix(DataProcessing::PCA(MNIST_digit_data::load_MNIST_images_fused(data_amount), 50),
-                           MNIST_digit_data::load_MNIST_labels_fused(data_amount),
+        p_matrix = PMatrix(DataProcessing::PCA_sparse(
+                               NeuronData::load_10x_h5(
+                                   "TSNE_data_input/neuron/1M_neurons_filtered_gene_bc_matrices_h5.h5", 0, data_amount),
+                               50),
+                           std::vector<uint8_t>(data_amount, 0u),
                            perplexity);
+        // p_matrix = PMatrix(DataProcessing::PCA(MNIST_digit_data::load_MNIST_images_fused(data_amount), 50),
+        //                    MNIST_digit_data::load_MNIST_labels_fused(data_amount),
+        //                    perplexity);
 
         generateInitialPoints(data_amount, seed, false);
 
@@ -153,9 +162,15 @@ class TSNE
 
         learnRate = static_cast<double>(data_amount) / 15.0;
 
-        p_matrix = PMatrix(DataProcessing::PCA(MNIST_digit_data::load_MNIST_images_fused(data_amount), 50),
-                           MNIST_digit_data::load_MNIST_labels_fused(data_amount),
+        p_matrix = PMatrix(DataProcessing::PCA_sparse(
+                               NeuronData::load_10x_h5(
+                                   "TSNE_data_input/neuron/1M_neurons_filtered_gene_bc_matrices_h5.h5", 0, data_amount),
+                               50),
+                           std::vector<uint8_t>(data_amount, 0u),
                            perplexity);
+        // p_matrix = PMatrix(DataProcessing::PCA(MNIST_digit_data::load_MNIST_images_fused(data_amount), 50),
+        //                    MNIST_digit_data::load_MNIST_labels_fused(data_amount),
+        //                    perplexity);
 
         generateInitialPoints(data_amount, seed, false);
 

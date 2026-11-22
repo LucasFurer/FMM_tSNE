@@ -1,6 +1,7 @@
 build/
 data/
 plotOutput/
+TSNE_data_input/
 .cache/
 .clang-format
 .clang-tidy
