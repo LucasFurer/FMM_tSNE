@@ -4,32 +4,23 @@
 #include <FMM_tSNE/tsne/solvers/P_matrix/P_matrix.h>
 #include <FMM_tSNE/tsne/tsne.h>
 #include <GLFW/glfw3.h>
-#include <atomic>
 #include <chrono>
-#include <cmath>
-#include <cstdint>
-#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
-#include <limits>
 #include <map>
-#include <numeric>
 #include <print>
-#include <ranges>
 #include <string>
-#include <thread>
 #include <unsupported/Eigen/SparseExtra>
-#include <utility>
 #include <vector>
 
 class TsneTest
 {
   public:
-    TsneTest() {}
+    TsneTest() = default;
 
     void
     errorTimestepTSNE(const PMatrix& p_matrix, int iteration_amount, double theta, double cell_size, unsigned int seed)
@@ -118,8 +109,8 @@ class TsneTest
         {
             std::filesystem::path methodPath_error = projectFolder / ("tsneErrorTimestep" + candidate + methodString);
             std::filesystem::path methodPath_time = projectFolder / ("tsneTimeTimestep" + candidate + methodString);
-            writeToFile(iteration_counts[candidate], errors[candidate], methodPath_error);
-            writeToFile(iteration_counts[candidate], times[candidate], methodPath_time);
+            writeToFileN(methodPath_error, iteration_counts[candidate], errors[candidate]);
+            writeToFileN(methodPath_time, iteration_counts[candidate], times[candidate]);
         }
     }
 
@@ -171,43 +162,18 @@ class TsneTest
 
             std::vector<TsnePoint2D> naive_solution(data_size);
 
-            // #ifdef INDEX_TRACKER
-            // std::string indexCheck = "index";
-            // #else
-            // std::string indexCheck = "noindex";
-            // #endif
-            // std::string full = "full";
-            // std::filesystem::path pre_computed_path_full_naive_solution = std::filesystem::current_path() /
-            // std::string("precomputed_states") / dataset_type / std::to_string(data_size) /
-            // std::to_string(static_cast<unsigned int>(perplexity_value)) / std::to_string(seed) / indexCheck / full;
-
-            // if (!std::filesystem::exists(pre_computed_path_full_naive_solution))
-            //     std::filesystem::create_directories(pre_computed_path_full_naive_solution);
-
             double timeBefore = 0.0;
             for (int j = 0; j < iteration_amount; j++)
             {
-                // std::vector<TsnePoint2D>& naiveSolution = naiveSolutions[j];
-                // std::vector<int>& naiveSolutionIndexTracker = naiveSolutionIndexTrackers[j];
-
                 std::cout << "find calc time at iteration: " << j << ", for theta: " << chosen_theta << std::endl;
 
                 tsne.updateMinMaxPos();
 
-                // correct solution up to machine precision
-                // if (std::filesystem::exists(pre_computed_path_full_naive_solution / std::to_string(j)))
-                //{
-                //     loadPrecomputed(naive_solution, pre_computed_path_full_naive_solution / std::to_string(j));
-                // }
-                // else
-                //{
                 tsne.resetDeriv();
                 tsne.iteration_counter = j;
                 tsne.nBodySelect = "naive";
                 tsne.updateDerivative();
                 naive_solution = tsne.embeddedPoints;
-                // storePrecomputed(naive_solution, pre_computed_path_full_naive_solution / std::to_string(j));
-                //}
 
                 for (std::string candidate : candidates)
                 {
@@ -246,7 +212,7 @@ class TsneTest
                 projectFolder /
                 ("tsneCalculationtimeTheta" + candidate + "_point" + std::to_string(data_size) + "_perp" +
                  std::to_string(static_cast<int>(perplexity_value)) + "_dataset" + dataset_type + ".csv");
-            writeToFile(thetas_arrays[candidate], calc_times[candidate], methodPath);
+            writeToFileN(methodPath, thetas_arrays[candidate], calc_times[candidate]);
         }
     }
 
@@ -295,62 +261,24 @@ class TsneTest
 
             std::vector<TsnePoint2D> naive_solution(data_size);
 
-            // #ifdef INDEX_TRACKER
-            // std::string indexCheck = "index";
-            // #else
-            // std::string indexCheck = "noindex";
-            // #endif
-            // std::string full = "full";
-            // std::string compare = "comp";
-            // std::filesystem::path pre_computed_path_full_naive_solution = std::filesystem::current_path() /
-            // std::string("precomputed_states") / dataset_type / std::to_string(data_size) /
-            // std::to_string(static_cast<unsigned int>(perplexity_value)) / std::to_string(seed) / indexCheck / full;
-            // std::filesystem::path pre_computed_path_naive_solution = std::filesystem::current_path() /
-            // std::string("precomputed_states") / dataset_type / std::to_string(data_size) /
-            // std::to_string(static_cast<unsigned int>(perplexity_value)) / std::to_string(seed) / indexCheck /
-            // compare;
-
-            // if (!std::filesystem::exists(pre_computed_path_full_naive_solution))
-            //     std::filesystem::create_directories(pre_computed_path_full_naive_solution);
-
-            // if (!std::filesystem::exists(pre_computed_path_naive_solution))
-            //     std::filesystem::create_directories(pre_computed_path_naive_solution);
-
             for (int j = 0; j < iteration_amount; j++)
             {
                 std::cout << "find error at iteration: " << j << ", for theta: " << chosen_theta << std::endl;
 
                 tsne.updateMinMaxPos();
 
-                // correct solution up to machine precision
-                // if (std::filesystem::exists(pre_computed_path_full_naive_solution / std::to_string(j)))
-                //{
-                //    loadPrecomputed(naive_solution, pre_computed_path_full_naive_solution / std::to_string(j));
-                //}
-                // else
-                //{
                 tsne.resetDeriv();
                 tsne.iteration_counter = j;
                 tsne.nBodySelect = "naive";
                 tsne.updateDerivative();
                 naive_solution = tsne.embeddedPoints;
-                // storePrecomputed(naive_solution, pre_computed_path_full_naive_solution / std::to_string(j));
-                //}
 
-                // if (std::filesystem::exists(pre_computed_path_naive_solution / std::to_string(j)))
-                //{
-                //     loadPrecomputed(naive_solution_rep, pre_computed_path_naive_solution / std::to_string(j));
-                // }
-                // else
-                //{
                 tsne.resetDeriv();
                 tsne.iteration_counter = j;
                 tsne.nBodySelect = "naive";
                 tsne.resetDeriv();
                 tsne.updateRepulsive();
                 naive_solution_rep = tsne.embeddedPoints;
-                // storePrecomputed(naive_solution_rep, pre_computed_path_naive_solution / std::to_string(j));
-                //}
 
                 for (std::string candidate : candidates)
                 {
@@ -388,7 +316,7 @@ class TsneTest
                 projectFolder /
                 ("tsneErrorTheta" + candidate + "_point" + std::to_string(data_size) + "_perp" +
                  std::to_string(static_cast<int>(perplexity_value)) + "_dataset" + dataset_type + ".csv");
-            writeToFile(thetas_arrays[candidate], errors[candidate], methodPath);
+            writeToFileN(methodPath, thetas_arrays[candidate], errors[candidate]);
         }
     }
 
@@ -503,7 +431,7 @@ class TsneTest
                 projectFolder /
                 ("tsneCalculationtimeError" + candidate + "_point" + std::to_string(data_size) + "_perp" +
                  std::to_string(static_cast<int>(perplexity_value)) + "_dataset" + dataset_type + ".csv");
-            writeToFile3(errors[candidate], times[candidate], thetas_arrays[candidate], methodPath);
+            writeToFileN(methodPath, errors[candidate], times[candidate], thetas_arrays[candidate]);
         }
     }
 
@@ -570,7 +498,7 @@ class TsneTest
             projectFolder / ("costTimestep" + std::string(method) + "_point" + std::to_string(data_size) + "_perp" +
                              std::to_string(static_cast<int>(perplexity_value)) + "_minTheta" + fltToStr(min_theta) +
                              "_maxTheta" + fltToStr(max_theta) + "_dataset" + dataset_type + ".csv");
-        writeToFile(times, costs, methodPath);
+        writeToFileN(methodPath, times, costs);
     }
 
     void calculationtimeCostTSNE(const PMatrix& p_matrix,
@@ -632,7 +560,14 @@ class TsneTest
         methodPath = projectFolder /
                      ("tsneCalculationtimeCost" + std::string(method) + "_point" + std::to_string(data_size) + "_perp" +
                       std::to_string(static_cast<int>(perplexity_value)) + "_dataset" + dataset_type + ".csv");
-        writeToFile3(finalCost, calculationtime, thetas, methodPath);
+        if (method == "PM")
+        {
+            writeToFileN(methodPath, finalCost, calculationtime, cell_sizes);
+        }
+        else
+        {
+            writeToFileN(methodPath, finalCost, calculationtime, thetas);
+        }
     }
 
     void calculationtimeError_MAXpoints_TSNE(const PMatrix p_matrix,
@@ -673,28 +608,6 @@ class TsneTest
 
                 std::vector<TsnePoint2D> full_naive_solution(data_size);
 
-#ifdef INDEX_TRACKER
-                std::string indexCheck = "index";
-#else
-                std::string indexCheck = "noindex";
-#endif
-                std::string full = "full";
-                std::string compare = "comp";
-                std::filesystem::path pre_computed_path_full_naive_solution =
-                    std::filesystem::current_path() / std::string("precomputed_states") / dataset_type /
-                    std::to_string(data_size) / std::to_string(static_cast<unsigned int>(perplexity_value)) /
-                    std::to_string(seed) / indexCheck / full;
-                std::filesystem::path pre_computed_path_naive_solution =
-                    std::filesystem::current_path() / std::string("precomputed_states") / dataset_type /
-                    std::to_string(data_size) / std::to_string(static_cast<unsigned int>(perplexity_value)) /
-                    std::to_string(seed) / indexCheck / compare;
-
-                if (!std::filesystem::exists(pre_computed_path_full_naive_solution))
-                    std::filesystem::create_directories(pre_computed_path_full_naive_solution);
-
-                if (!std::filesystem::exists(pre_computed_path_naive_solution))
-                    std::filesystem::create_directories(pre_computed_path_naive_solution);
-
                 int measure_amount = 0;
                 double timeBefore = 0.0f;
                 for (int j = 0; j < iteration_amount; j++)
@@ -705,39 +618,22 @@ class TsneTest
                     tsne.updateMinMaxPos();
 
                     // correct solution up to machine precision
-                    if (std::filesystem::exists(pre_computed_path_full_naive_solution / std::to_string(j)))
-                    {
-                        loadPrecomputed(full_naive_solution, pre_computed_path_full_naive_solution / std::to_string(j));
-                    }
-                    else
-                    {
-                        tsne.resetDeriv();
-                        tsne.iteration_counter = j;
-                        tsne.nBodySelect = "naive";
-                        tsne.updateDerivative();
-                        full_naive_solution = tsne.embeddedPoints;
-                        storePrecomputed(full_naive_solution,
-                                         pre_computed_path_full_naive_solution / std::to_string(j));
-                    }
+                    tsne.resetDeriv();
+                    tsne.iteration_counter = j;
+                    tsne.nBodySelect = "naive";
+                    tsne.updateDerivative();
+                    full_naive_solution = tsne.embeddedPoints;
 
                     if (j % 20 == 0)
                     {
                         measure_amount++;
 
-                        if (std::filesystem::exists(pre_computed_path_naive_solution / std::to_string(j)))
-                        {
-                            loadPrecomputed(naiveSolution, pre_computed_path_naive_solution / std::to_string(j));
-                        }
-                        else
-                        {
-                            tsne.resetDeriv();
-                            tsne.iteration_counter = j;
-                            tsne.nBodySelect = "naive";
-                            tsne.resetDeriv();
-                            tsne.updateRepulsive();
-                            naiveSolution = tsne.embeddedPoints;
-                            storePrecomputed(naiveSolution, pre_computed_path_naive_solution / std::to_string(j));
-                        }
+                        tsne.resetDeriv();
+                        tsne.iteration_counter = j;
+                        tsne.nBodySelect = "naive";
+                        tsne.resetDeriv();
+                        tsne.updateRepulsive();
+                        naiveSolution = tsne.embeddedPoints;
 
                         tsne.resetDeriv();
                         tsne.iteration_counter = j;
@@ -777,7 +673,7 @@ class TsneTest
                          ("tsneCalculationtimeErrorMAXPOINTS_" + std::to_string(max_points[m]) + method + "_point" +
                           std::to_string(data_size) + "_perp" + std::to_string(static_cast<int>(perplexity_value)) +
                           "_dataset" + dataset_type + ".csv");
-            writeToFile3(error, calculationtime, theta_tracker, methodPath);
+            writeToFileN(methodPath, error, calculationtime, theta_tracker);
         }
     }
 
@@ -960,7 +856,7 @@ class TsneTest
             projectFolder / (std::string("tsneErrorTimestepZaccum") + "FMMfast_SYM_MORTON" + "_point" +
                              std::to_string(data_size) + "_perp" + std::to_string(static_cast<int>(perplexity_value)) +
                              "_theta" + fltToStr(theta) + "_dataset" + dataset_type + ".csv");
-        writeToFile(factors, errors, methodPath);
+        writeToFileN(methodPath, factors, errors);
     }
 
   private:
@@ -985,53 +881,6 @@ class TsneTest
         MRE = MRE / points_naive.size();
 
         return MRE;
-    }
-
-    template <typename T, typename I>
-    void writeToFile(const std::vector<T>& Xaxis, const std::vector<I>& Yaxis, std::filesystem::path filepath)
-    {
-        std::ofstream file(filepath, std::ios::out);
-
-        if (!file.is_open())
-        {
-            std::cerr << "Error: Could not open file for writing: " << filepath << std::endl;
-            return;
-        }
-
-        for (size_t i = 0; i < Xaxis.size(); ++i)
-            file << Xaxis[i] << "," << Yaxis[i] << "\n";
-
-        if (file.fail())
-            std::cerr << "Error: Failed while writing to file: " << filepath << std::endl;
-        else
-            std::cout << "File written successfully: " << filepath << std::endl;
-
-        file.close();
-    }
-
-    template <typename T, typename I, typename J>
-    void writeToFile3(const std::vector<T>& Xaxis,
-                      const std::vector<I>& Yaxis,
-                      const std::vector<J>& Zaxis,
-                      std::filesystem::path filepath)
-    {
-        std::ofstream file(filepath, std::ios::out);
-
-        if (!file.is_open())
-        {
-            std::cerr << "Error: Could not open file for writing: " << filepath << std::endl;
-            return;
-        }
-
-        for (size_t i = 0; i < Xaxis.size(); ++i)
-            file << Xaxis[i] << "," << Yaxis[i] << "," << Zaxis[i] << "\n";
-
-        if (file.fail())
-            std::cerr << "Error: Failed while writing to file: " << filepath << std::endl;
-        else
-            std::cout << "File written successfully: " << filepath << std::endl;
-
-        file.close();
     }
 
     template <typename... Vectors>
@@ -1078,31 +927,5 @@ class TsneTest
         }
 
         return str;
-    }
-
-    void loadPrecomputed(std::vector<TsnePoint2D>& P, std::filesystem::path path)
-    {
-        std::ifstream in(path, std::ios::binary);
-        if (!in)
-        {
-            throw std::runtime_error("Failed to open file for reading");
-        }
-        else
-        {
-            in.read(reinterpret_cast<char*>(P.data()), P.size() * sizeof(TsnePoint2D));
-        }
-    }
-
-    void storePrecomputed(const std::vector<TsnePoint2D>& P, std::filesystem::path path)
-    {
-        std::ofstream out(path, std::ios::binary);
-        if (!out)
-        {
-            throw std::runtime_error("Failed to open file for writing");
-        }
-        else
-        {
-            out.write(reinterpret_cast<const char*>(P.data()), P.size() * sizeof(TsnePoint2D));
-        }
     }
 };

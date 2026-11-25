@@ -139,7 +139,7 @@ RowMat orthonormalize(const RowMat& A)
 } // namespace
 std::vector<std::vector<float>> PCA(const std::vector<std::vector<float>>& input, int n_components = 50)
 {
-    std::print("begin PCA");
+    // std::print("begin PCA");
     if (input.empty() || input[0].empty()) throw std::invalid_argument("PCA: empty input");
 
     const Eigen::Index n = static_cast<Eigen::Index>(input.size());
@@ -173,7 +173,7 @@ std::vector<std::vector<float>> PCA(const std::vector<std::vector<float>>& input
     for (Eigen::Index i = 0; i < n; ++i)
         Eigen::Map<Eigen::RowVectorXf>(output[i].data(), k) = projected.row(i);
 
-    std::print("end PCA");
+    // std::print("end PCA");
     return output;
 }
 
@@ -185,7 +185,7 @@ std::vector<std::vector<float>> PCA(const std::vector<std::vector<float>>& input
 // X^T (X V) is streamed row by row, so extra memory is O(genes * k) per thread.
 std::vector<std::vector<float>> PCA_sparse(const SparseMatrix& X, int n_components)
 {
-    std::print("begin PCA_sparse");
+    // std::print("begin PCA_sparse");
     constexpr int kOversamples = 10;    // extra subspace dimensions (accuracy)
     constexpr int kPowerIterations = 4; // each one is a full pass over the data
     constexpr uint32_t kSeed = 42;
@@ -271,7 +271,7 @@ std::vector<std::vector<float>> PCA_sparse(const SparseMatrix& X, int n_componen
                                 output[i][c2] = static_cast<float>(t[c2] - shift[c2]);
                         }
                     });
-    std::print("end PCA_sparse");
+    // std::print("end PCA_sparse");
     return output;
 }
 } // namespace DataProcessing

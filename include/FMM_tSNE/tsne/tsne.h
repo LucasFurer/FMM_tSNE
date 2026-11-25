@@ -371,8 +371,8 @@ class TSNE
 
                 double Pij = p_matrix.m_val_P[column];
 
-                // totalCost += Pij * std::log2(Pij / Qij);
-                totalCost += Pij * std::log(Pij / Qij);
+                totalCost += Pij * std::log2(Pij / Qij);
+                // totalCost += Pij * std::log(Pij / Qij);
             }
         }
 
