@@ -3,6 +3,7 @@
 #include <FMM_tSNE/cameras/two_D_camera.h>
 #include <FMM_tSNE/data_handling/data_loading/star_data.h>
 #include <FMM_tSNE/tsne/tests/VP_test.h>
+#include <FMM_tSNE/tsne/tests/multipole_test.h>
 #include <FMM_tSNE/tsne/tests/tsne_test.h>
 #include <FMM_tSNE/tsne/tsne_buffers.h>
 #include <glm/glm.hpp>
@@ -16,9 +17,11 @@ int main()
     Timer test_time{};
     // VPTest::find_NN_test();
 
+    MultipoleTest::test_construction();
+
     constexpr size_t data_size = 10000;
     constexpr float perplexity = 30.0f;
-    constexpr unsigned int seed = 92239233u;
+    constexpr unsigned int seed = 327493463u;
 
     // PMatrix p_matrix = PMatrix(
     //     DataProcessing::PCA_sparse(
@@ -79,30 +82,30 @@ int main()
     //                            "BH" // method: "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
     // );
 
-    tsne_test.calculationtimeCostTSNE // looking at the final cost
-        (p_matrix,
-         1001,                                                            // iteration_amount
-         std::vector<double>{0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0},  // thetas
-         std::vector<double>{0.75, 0.85, 1.0, 1.10, 1.25, 1.5, 2.0, 2.5}, // cell_sizes
-         seed,                                                            // seed: 4523u
-         // method: "FMMfast_SYM_MORTON", "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
-         "PM");
-    tsne_test.calculationtimeCostTSNE // looking at the final cost
-        (p_matrix,
-         1001,                                                            // iteration_amount
-         std::vector<double>{0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0},  // thetas
-         std::vector<double>{0.75, 0.85, 1.0, 1.10, 1.25, 1.5, 2.0, 2.5}, // cell_sizes
-         seed,                                                            // seed: 4523u
-         // method: "FMMfast_SYM_MORTON", "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
-         "FMM_MORTON");
-    tsne_test.calculationtimeCostTSNE // looking at the final cost
-        (p_matrix,
-         1001,                                                            // iteration_amount
-         std::vector<double>{0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0},  // thetas
-         std::vector<double>{0.75, 0.85, 1.0, 1.10, 1.25, 1.5, 2.0, 2.5}, // cell_sizes
-         seed,                                                            // seed: 4523u
-         // method: "FMMfast_SYM_MORTON", "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
-         "FMM_SYM_MORTON");
+    // tsne_test.calculationtimeCostTSNE // looking at the final cost
+    //     (p_matrix,
+    //      1000,                                                            // iteration_amount
+    //      std::vector<double>{0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0},  // thetas
+    //      std::vector<double>{0.75, 0.85, 1.0, 1.10, 1.25, 1.5, 2.0, 2.5}, // cell_sizes
+    //      seed,                                                            // seed: 4523u
+    //      // method: "FMMfast_SYM_MORTON", "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
+    //      "PM");
+    // tsne_test.calculationtimeCostTSNE // looking at the final cost
+    //     (p_matrix,
+    //      1000,                                                            // iteration_amount
+    //      std::vector<double>{0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0},  // thetas
+    //      std::vector<double>{0.75, 0.85, 1.0, 1.10, 1.25, 1.5, 2.0, 2.5}, // cell_sizes
+    //      seed,                                                            // seed: 4523u
+    //      // method: "FMMfast_SYM_MORTON", "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
+    //      "FMM_MORTON");
+    // tsne_test.calculationtimeCostTSNE // looking at the final cost
+    //     (p_matrix,
+    //      1000,                                                            // iteration_amount
+    //      std::vector<double>{0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0},  // thetas
+    //      std::vector<double>{0.75, 0.85, 1.0, 1.10, 1.25, 1.5, 2.0, 2.5}, // cell_sizes
+    //      seed,                                                            // seed: 4523u
+    //      // method: "FMMfast_SYM_MORTON", "FMM_SYM_MORTON", "FMM_MORTON", "FMM", "PM", "BH", "BHRMP", "naive"
+    //      "FMM_SYM_MORTON");
 
     // tsne_test.calculationtimeError_MAXpoints_TSNE
     //(
@@ -136,7 +139,7 @@ int main()
     // );
 
     test_time.endTimer("done with tests, took this long");
-    // return 0;
+    return 0;
     // -------------------------------
 
     // put stuff into the app
@@ -145,8 +148,8 @@ int main()
     Shader shader_tsne = Shader((std::filesystem::current_path().string() + "/shaders/shader_tsne.vs").c_str(),
                                 (std::filesystem::current_path().string() + "/shaders/shader_tsne.fs").c_str());
 
-    TSNE_buffers tsne(2.0,  // min_theta
-                      3.0,  // max_theta
+    TSNE_buffers tsne(0.75, // min_theta
+                      0.75, // max_theta
                       1.25, // cell_size
                       p_matrix,
                       seed // seed: 216308u, 592340823u, 4523u, 296343u

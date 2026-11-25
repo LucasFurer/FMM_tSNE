@@ -341,18 +341,64 @@ class TSNE
             points[points_og[i].ID] = points_og[i];
 #endif
 
-        QTotalCuda qTotalGpu;
-        std::vector<double> qTotalPosBuffer;
+        // -----
 
-        const int n = static_cast<int>(points.size());
-        qTotalPosBuffer.resize(2 * static_cast<size_t>(n));
-        for (int i = 0; i < n; i++)
+        double QijTotal = 0.0;
+
+        const unsigned numThreads = std::thread::hardware_concurrency();
+        const size_t chunkSize = (points.size() + numThreads - 1) / numThreads;
+
+        std::vector<std::thread> threads;
+        std::vector<double> localTotals(numThreads, 0.0);
+
+        for (unsigned t = 0; t < numThreads; ++t)
         {
-            qTotalPosBuffer[2 * i + 0] = points[i].position.x;
-            qTotalPosBuffer[2 * i + 1] = points[i].position.y;
+            size_t begin = t * chunkSize;
+            size_t end = std::min(begin + chunkSize, points.size());
+
+            threads.emplace_back(
+                [&, t, begin, end]()
+                {
+                    double threadTotal = 0.0;
+
+                    for (size_t i = begin; i < end; ++i)
+                    {
+                        for (size_t j = 0; j < points.size(); ++j)
+                        {
+                            if (i == j) continue;
+
+                            const TsnePoint2D& point_i = points[i];
+                            const TsnePoint2D& point_j = points[j];
+
+                            glm::dvec2 diff = point_j.position - point_i.position;
+                            double distance_squared = diff.x * diff.x + diff.y * diff.y;
+                            localTotals[t] += 1.0 / (1.0 + distance_squared);
+                        }
+                    }
+                });
         }
 
-        const double QijTotal = qTotalGpu.compute(qTotalPosBuffer.data(), n);
+        for (std::thread& th : threads)
+            th.join();
+
+        QijTotal = std::accumulate(localTotals.begin(), localTotals.end(), 0.0);
+
+        // -----
+
+        // QTotalCuda qTotalGpu;
+        // std::vector<double> qTotalPosBuffer;
+
+        // const int n = static_cast<int>(points.size());
+        // qTotalPosBuffer.resize(2 * static_cast<size_t>(n));
+        // for (int i = 0; i < n; i++)
+        // {
+        //     qTotalPosBuffer[2 * i + 0] = points[i].position.x;
+        //     qTotalPosBuffer[2 * i + 1] = points[i].position.y;
+        // }
+
+        // const double QijTotal = qTotalGpu.compute(qTotalPosBuffer.data(), n);
+
+        // -----
 
         double totalCost = 0.0;
         for (int row = 0; row < points.size(); row++)

@@ -526,6 +526,7 @@ class TsneTest
             double chosenCellSize = cell_sizes[t];
 
             TSNE tsne(chosenTheta, 3.0, chosenCellSize, p_matrix, seed);
+            // TSNE tsne(chosenTheta, chosenTheta, chosenCellSize, p_matrix, seed);
 
             double timeBefore = 0.0f;
             for (int j = 0; j < iteration_amount; j++)
