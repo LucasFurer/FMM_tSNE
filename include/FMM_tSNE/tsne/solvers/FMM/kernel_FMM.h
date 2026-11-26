@@ -44,7 +44,13 @@ inline void TSNE_FMM_NN(double& total, NodeFMM& sinkNode, MF& sinkField, NodeFMM
                   MA0 * MB0 * ((R.x) * D2 + R.x * R.y * R.y * D3),
                   MA0 * MB0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3)};
 
-    total += (MA0 * MB0) / rS;
+    auto trHM = [&](const NodeFMM& n)
+    {
+        return -2.0 *
+               (D1 * (n.M2xx + n.M2yy) + D2 * (R.x * R.x * n.M2xx + 2.0 * R.x * R.y * n.M2xy + R.y * R.y * n.M2yy));
+    };
+    total += MA0 * MB0 / rS + 0.5 * (MB0 * trHM(sinkNode) + MA0 * trHM(sourceNode));
+    // total += (MA0 * MB0) / rS;
 }
 
 inline void TSNE_FMM_PN(double& total, TsnePoint2D& sinkPoint, NodeFMM& sourceNode)
@@ -79,7 +85,13 @@ inline void TSNE_FMM_PN(double& total, TsnePoint2D& sinkPoint, NodeFMM& sourceNo
         glm::dvec2{MB0 * (R.x * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i0) *D2),
                    MB0 * (R.y * (D1 + 0.5 * (MB2TildeSum1) *D2 + 0.5 * (MB2TildeSum2) *D3) + (MB2TildeSum3i1) *D2)};
 
-    total += MB0 / rS;
+    auto trHM = [&](const NodeFMM& n)
+    {
+        return -2.0 *
+               (D1 * (n.M2xx + n.M2yy) + D2 * (R.x * R.x * n.M2xx + 2.0 * R.x * R.y * n.M2xy + R.y * R.y * n.M2yy));
+    };
+    total += MB0 / rS + 0.5 * trHM(sourceNode);
+    // total += MB0 / rS;
 }
 
 inline void TSNE_FMM_NP(double& total, NodeFMM& sinkNode, MF& sinkField, TsnePoint2D& sourcePoint)
@@ -110,7 +122,13 @@ inline void TSNE_FMM_NP(double& total, NodeFMM& sinkNode, MF& sinkField, TsnePoi
                   MA0 * ((R.x) * D2 + R.x * R.y * R.y * D3),
                   MA0 * ((R.y + R.y + R.y) * D2 + R.y * R.y * R.y * D3)};
 
-    total += MA0 / rS;
+    auto trHM = [&](const NodeFMM& n)
+    {
+        return -2.0 *
+               (D1 * (n.M2xx + n.M2yy) + D2 * (R.x * R.x * n.M2xx + 2.0 * R.x * R.y * n.M2xy + R.y * R.y * n.M2yy));
+    };
+    total += MA0 / rS + 0.5 * trHM(sinkNode);
+    // total += MA0 / rS;
 }
 
 inline void TSNE_FMM_PP(double& total, TsnePoint2D& sinkPoint, TsnePoint2D& sourcePoint)

@@ -80,7 +80,10 @@ inline void TSNE_SFMM_NN(double& total, NodeSFMM& node_A, NodeSFMM& node_B)
          -field.C3yyy};
 
     // add totals for both interactions
-    total += 2.0 * (MA0 * MB0) / rS;
+    const auto trHM = [&](const NodeSFMM& n)
+    { return -2.0 * (D1 * (n.M2xx + n.M2yy) + D2 * (R_xx * n.M2xx + 2.0 * R_xy * n.M2xy + R_yy * n.M2yy)); };
+    total += 2.0 * (MA0 * MB0) / rS + (MB0 * trHM(node_A) + MA0 * trHM(node_B));
+    // total += 2.0 * (MA0 * MB0) / rS;
 }
 
 inline void TSNE_SFMM_PN(double& total, TsnePoint2D& point_A, NodeSFMM& node_B)
@@ -134,7 +137,10 @@ inline void TSNE_SFMM_PN(double& total, TsnePoint2D& point_A, NodeSFMM& node_B)
                      MB0 * ((R_AB.y + R_AB.y + R_AB.y) * D2 + (R_yy * R_AB.y * D3))};
 
     // add totals for both interactions
-    total += 2.0 * MB0 / rS;
+    const double trHM_B = -2.0 * (D1 * (node_B.M2xx + node_B.M2yy) +
+                                  D2 * (R_xx * node_B.M2xx + 2.0 * R_xy * node_B.M2xy + R_yy * node_B.M2yy));
+    total += 2.0 * MB0 / rS + trHM_B;
+    // total += 2.0 * MB0 / rS;
 }
 
 inline void TSNE_SFMM_PP(double& total, TsnePoint2D& point_A, TsnePoint2D& point_B)

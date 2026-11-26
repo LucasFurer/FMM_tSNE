@@ -66,8 +66,8 @@ class TsneTest
             tsne.iteration_counter = t;
             tsne.nBodySelect = "naive";
             tsne.resetDeriv();
-            // tsne.updateRepulsive();
-            tsne.updateRepulsiveNoNorm();
+            tsne.updateRepulsive();
+            // tsne.updateRepulsiveNoNorm();
             naive_solution_rep = tsne.embeddedPoints;
 
             for (std::string candidate : candidates)
@@ -80,8 +80,8 @@ class TsneTest
                 tsne.nBodySolvers[candidate]->updateTree(tsne.embeddedPoints, tsne.minPos, tsne.maxPos);
                 // tsne.updateDerivative();
                 tsne.resetDeriv();
-                // tsne.updateRepulsive();
-                tsne.updateRepulsiveNoNorm();
+                tsne.updateRepulsive();
+                // tsne.updateRepulsiveNoNorm();
                 fast_solution_rep = tsne.embeddedPoints;
                 errors[candidate][t] = getNMAE(naive_solution_rep, fast_solution_rep);
                 times[candidate][t] += glfwGetTime() - timeBefore;
